@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Camiones</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f4;color:#1c1c1a;font-size:14px}
+.topbar{background:#fff;border-bottom:1px solid #e5e5e3;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.nav{display:flex;gap:2px;margin-left:20px}
+.nav-btn{padding:6px 14px;border:none;background:none;font-size:13px;color:#6b6b68;cursor:pointer;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:5px}
+.nav-btn:hover{background:#f0efed;color:#1c1c1a}
+.nav-btn.on{background:#1a5fa8;color:#fff;font-weight:500}
+.nav-btn .cnt{background:#e24b4a;color:#fff;border-radius:99px;font-size:10px;padding:1px 5px}
+.main{padding:20px;max-width:1300px;margin:0 auto}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
+.mc{background:#fff;border-radius:10px;padding:12px 14px;border:1px solid #e5e5e3}
+.mc-l{font-size:11px;color:#6b6b68;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.mc-v{font-size:24px;font-weight:600}
+.page{display:none}.page.on{display:block}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.toolbar input,.toolbar select{font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid #d4d4d1;background:#fff;color:#1c1c1a;height:34px;outline:none}
+.toolbar input:focus,.toolbar select:focus{border-color:#1a5fa8}
+.toolbar input{min-width:200px}
+.btn{height:34px;padding:0 14px;border-radius:8px;border:1px solid #d4d4d1;background:#fff;color:#1c1c1a;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .12s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:#f0efed}
+.btn.p{background:#1a5fa8;color:#fff;border-color:#1a5fa8}
+.btn.p:hover{background:#145090}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#a32d2d;border-color:#f09595}
+.btn.danger:hover{background:#fcebeb}
+.btn.ok{background:#eaf3de;color:#27500a;border-color:#c0dd97}
+.btn.ok:hover{background:#d4e9bc}
+.btn.export{background:#217346;color:#fff;border-color:#217346}
+.btn.export:hover{background:#1a5c38}
+.tw{overflow-x:auto;background:#fff;border:1px solid #e5e5e3;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#fafaf9;color:#6b6b68;font-weight:500;padding:9px 11px;text-align:left;border-bottom:1px solid #e5e5e3;white-space:nowrap;cursor:pointer;user-select:none;font-size:12px}
+th:hover{color:#1c1c1a}
+td{padding:9px 11px;border-bottom:1px solid #f0efed;color:#1c1c1a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf9}
+.bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;font-family:inherit}
+.bdg.c{background:#eaf3de;color:#27500a}
+.bdg.p{background:#faeeda;color:#633806}
+.bdg.s{background:#fcebeb;color:#791f1f}
+.bdg:hover{opacity:.85}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{background:#fff;border:1px solid #e5e5e3;border-radius:10px;padding:14px}
+.card-dashed{border-style:dashed;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:90px;color:#6b6b68;font-size:13px;gap:6px}
+.card-dashed:hover{background:#fafaf9}
+.card-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.card-sub{font-size:11px;color:#6b6b68}
+.card-row{font-size:12px;color:#6b6b68;margin-top:5px}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.av-b{background:#dbeafe;color:#1e40af}
+.av-g{background:#dcfce7;color:#166534}
+.pill{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.empty{text-align:center;padding:2rem;color:#6b6b68;font-size:13px}
+.rcount{font-size:11px;color:#6b6b68;margin-top:6px}
+.totals-row td{font-weight:600;background:#fafaf9;border-top:1px solid #e5e5e3}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding-top:40px}
+.modal{background:#fff;border-radius:12px;border:1px solid #e5e5e3;padding:20px;width:580px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgf{grid-column:1/-1}
+.fl{display:flex;flex-direction:column;gap:4px}
+.fl label{font-size:11px;color:#6b6b68;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.fl input,.fl select,.fl textarea{font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid #d4d4d1;background:#fff;color:#1c1c1a;font-family:inherit;outline:none}
+.fl input:focus,.fl select:focus{border-color:#1a5fa8}
+.fl textarea{resize:vertical;min-height:56px}
+.mbt{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.sec-title{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.alert-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e5e5e3;border-radius:8px;margin-bottom:8px;background:#fff}
+.alert-item.urg{border-color:#f09595;background:#fff8f8}
+.est-disp{background:#eaf3de;color:#27500a}
+.est-ruta{background:#dbeafe;color:#1e40af}
+.est-tall{background:#faeeda;color:#633806}
+/* Export modal */
+.exp-opt{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e5e5e3;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.exp-opt:hover{border-color:#1a5fa8;background:#f0f5ff}
+.exp-opt input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8}
+.exp-opt label{cursor:pointer;font-size:13px;flex:1}
+.exp-opt .exp-desc{font-size:11px;color:#6b6b68}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <h1>🚛 Planning Camiones</h1>
+    <nav class="nav">
+      <button class="nav-btn on" onclick="go('viajes')">📦 Viajes</button>
+      <button class="nav-btn" onclick="go('facturas')">🧾 Facturas</button>
+      <button class="nav-btn" onclick="go('matriculas')">🚚 Matrículas</button>
+      <button class="nav-btn" onclick="go('contactos')">👥 Contactos</button>
+      <button class="nav-btn" onclick="go('alertas')">🔔 Alertas <span class="cnt" id="acnt" style="display:none"></span></button>
+    </nav>
+  </div>
+  <div style="font-size:12px;color:#6b6b68" id="topdate"></div>
+</div>
+
+<div class="main">
+  <div id="metrics" class="metrics"></div>
+
+  <!-- VIAJES -->
+  <div class="page on" id="pg-viajes">
+    <div class="toolbar">
+      <input type="text" id="vsearch" placeholder="🔍  Buscar cliente, origen, producto…" oninput="rViajes()">
+      <select id="vfcobro" onchange="rViajes()">
+        <option value="">Todos los estados</option>
+        <option value="c">✅ Cobrado</option>
+        <option value="p">⏳ Pendiente</option>
+        <option value="s">❌ Sin factura</option>
+      </select>
+      <select id="vfmes" onchange="rViajes()"><option value="">Todos los meses</option></select>
+      <button class="btn p" onclick="openViaje()">＋ Nuevo viaje</button>
+      <button class="btn export" onclick="openExport()">📥 Exportar a Excel</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th onclick="vs('previsto')">Previsto ↕</th>
+          <th onclick="vs('carga')">Carga ↕</th>
+          <th onclick="vs('pedido')">Pedido ↕</th>
+          <th>Origen</th>
+          <th>Destino / Cliente</th>
+          <th>Producto</th>
+          <th>Documento</th>
+          <th onclick="vs('factura')">Factura ↕</th>
+          <th>Matrícula</th>
+          <th style="text-align:center">Palets</th>
+          <th style="text-align:right">Comisión (€)</th>
+          <th>Estado cobro</th>
+          <th>F. Cobro</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="vtbody"></tbody>
+        <tfoot id="vtfoot"></tfoot>
+      </table>
+    </div>
+    <div class="rcount" id="vrcount"></div>
+  </div>
+
+  <!-- FACTURAS -->
+  <div class="page" id="pg-facturas">
+    <div class="toolbar">
+      <input type="text" id="fsearch" placeholder="🔍  Nº factura, cliente…" oninput="rFacturas()">
+      <select id="ffest" onchange="rFacturas()">
+        <option value="">Todos</option>
+        <option value="p">⏳ Pendientes</option>
+        <option value="c">✅ Cobradas</option>
+      </select>
+      <button class="btn p" onclick="openFactura()">＋ Nueva factura</button>
+      <button class="btn export" onclick="exportFacturasExcel()">📥 Exportar a Excel</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th onclick="fs('num')">Nº Factura ↕</th>
+          <th>Cliente</th>
+          <th onclick="fs('fecha')">Fecha ↕</th>
+          <th onclick="fs('vence')">Vencimiento ↕</th>
+          <th style="text-align:right">Importe (€)</th>
+          <th>Estado</th>
+          <th>Fecha cobro</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="ftbody"></tbody>
+        <tfoot id="ftfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- MATRÍCULAS -->
+  <div class="page" id="pg-matriculas">
+    <div class="toolbar">
+      <input type="text" id="msearch" placeholder="🔍  Matrícula, conductor…" oninput="rMatriculas()">
+      <select id="mfest" onchange="rMatriculas()">
+        <option value="">Todos</option>
+        <option value="disponible">🟢 Disponible</option>
+        <option value="en ruta">🔵 En ruta</option>
+        <option value="taller">🟡 Taller</option>
+      </select>
+      <button class="btn p" onclick="openMatricula()">＋ Añadir vehículo</button>
+    </div>
+    <div class="cards" id="mcards"></div>
+  </div>
+
+  <!-- CONTACTOS -->
+  <div class="page" id="pg-contactos">
+    <div class="toolbar">
+      <input type="text" id="csearch" placeholder="🔍  Nombre, empresa…" oninput="rContactos()">
+      <select id="cftipo" onchange="rContactos()">
+        <option value="">Todos</option>
+        <option value="cliente">🛒 Clientes</option>
+        <option value="proveedor">📦 Proveedores</option>
+      </select>
+      <button class="btn p" onclick="openContacto()">＋ Nuevo contacto</button>
+    </div>
+    <div class="cards" id="ccards"></div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="page" id="pg-alertas">
+    <div id="alist"></div>
+  </div>
+</div>
+
+<!-- MODAL GENERAL -->
+<div class="ov" id="mov" style="display:none" onclick="if(event.target.id==='mov')closeModal()">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="mtitle"></span>
+      <button class="btn sm" onclick="closeModal()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#6b6b68;padding:0 4px">×</button>
+    </div>
+    <div id="mform"></div>
+    <div class="mbt">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn p" onclick="saveModal()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXPORTAR -->
+<div class="ov" id="expov" style="display:none" onclick="if(event.target.id==='expov')closeExp()">
+  <div class="modal" style="width:480px">
+    <div class="modal-title">
+      <span>📥 Exportar a Excel</span>
+      <button class="btn sm" onclick="closeExp()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#6b6b68;padding:0 4px">×</button>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:#6b6b68;margin-bottom:10px;font-weight:500">¿QUÉ DATOS EXPORTAR?</div>
+      <div class="exp-opt"><input type="radio" name="exp-scope" id="exp-todos" value="todos" checked><label for="exp-todos"><strong>Todos los viajes</strong><div class="exp-desc">Exporta todos los registros sin filtrar</div></label></div>
+      <div class="exp-opt"><input type="radio" name="exp-scope" id="exp-filtro" value="filtro"><label for="exp-filtro"><strong>Solo los viajes del filtro actual</strong><div class="exp-desc">Solo lo que se ve ahora en pantalla</div></label></div>
+      <div class="exp-opt"><input type="radio" name="exp-scope" id="exp-pend" value="pend"><label for="exp-pend"><strong>Solo pendientes de cobro</strong><div class="exp-desc">Viajes sin cobrar para seguimiento</div></label></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:#6b6b68;margin-bottom:10px;font-weight:500">¿QUÉ COLUMNAS INCLUIR?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="exp-opt"><input type="checkbox" id="col-previsto" checked><label for="col-previsto">📅 Fecha prevista</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-carga" checked><label for="col-carga">📅 Día de carga</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-pedido" checked><label for="col-pedido">📅 Fecha pedido</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-origen" checked><label for="col-origen">📦 Origen</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-destino" checked><label for="col-destino">🏪 Destino</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-producto" checked><label for="col-producto">🧴 Producto</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-doc" checked><label for="col-doc">📄 Documento</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-factura" checked><label for="col-factura">🧾 Factura</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-matricula" checked><label for="col-matricula">🚛 Matrícula</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-bi" checked><label for="col-bi">💶 Comisión (€)</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-palets" checked><label for="col-palets">📦 Palets</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-cobro" checked><label for="col-cobro">✅ Estado cobro</label></div>
+        <div class="exp-opt"><input type="checkbox" id="col-fcobro" checked><label for="col-fcobro">📅 Fecha cobro</label></div>
+      </div>
+    </div>
+
+    <div style="background:#f0f5ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;font-size:12px;color:#1e40af;margin-bottom:14px">
+      💡 <strong>Consejo:</strong> Al abrir el archivo .csv en Excel, si las columnas aparecen juntas ve a <em>Datos → Texto en columnas → Delimitado → Punto y coma</em>. O usa "Abrir con Excel" directamente.
+    </div>
+
+    <div class="mbt">
+      <button class="btn" onclick="closeExp()">Cancelar</button>
+      <button class="btn export" onclick="doExport()">📥 Descargar Excel (.csv)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let DB = {
+  viajes:[
+    {id:1,previsto:'2026-03-19',carga:'2026-03-19',pedido:'2026-03-12',origen:'MARMIREK,S.L.',destino:'MONT LAHORE SL',producto:'Agua Solan de Cabras',doc:'49',factura:'65',cobro:'',matricula:'',comision:'',palets:27},
+    {id:2,previsto:'2026-03-19',carga:'',pedido:'2026-03-12',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras',doc:'51',factura:'66',cobro:'',matricula:'',comision:'',palets:30},
+    {id:3,previsto:'2026-03-20',carga:'2026-03-18',pedido:'2026-03-12',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras',doc:'Alba 1',factura:'1',cobro:'2026-03-18',matricula:'',comision:'',palets:30},
+    {id:4,previsto:'2026-03-26',carga:'2026-03-31',pedido:'2026-03-18',origen:'OCASION INVERSORA,SL',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Variado Aquarius',doc:'Alba 2',factura:'7',cobro:'2026-03-31',matricula:'',comision:'',palets:25},
+    {id:5,previsto:'2026-03-30',carga:'2026-03-27',pedido:'2026-03-23',origen:'MARMIREK,S.L.',destino:'VALIENTE SOLDADO SL',producto:'Agua Font Vella 0,500ml',doc:'56',factura:'74',cobro:'',matricula:'',comision:'',palets:30},
+    {id:6,previsto:'2026-03-31',carga:'2026-03-31',pedido:'2026-03-23',origen:'MARMIREK,S.L.',destino:'MONT LAHORE SL',producto:'Agua Solan de Cabras',doc:'57',factura:'77',cobro:'',matricula:'',comision:'',palets:28},
+    {id:7,previsto:'2026-04-01',carga:'2026-04-01',pedido:'2026-03-21',origen:'MARMIREK,S.L.',destino:'MONT LAHORE SL',producto:'Agua Solan de Cabras 5L/1.5Pk6',doc:'66',factura:'84',cobro:'2026-03-21',matricula:'',comision:'',palets:28},
+    {id:8,previsto:'2026-04-08',carga:'',pedido:'2026-03-21',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras',doc:'5',factura:'7',cobro:'COBRADA',matricula:'',comision:'',palets:31},
+    {id:9,previsto:'2026-04-09',carga:'',pedido:'2026-03-21',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras',doc:'6',factura:'12',cobro:'COBRADA',matricula:'',comision:'',palets:30},
+    {id:10,previsto:'2026-04-23',carga:'2026-04-23',pedido:'',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras 5L,2L,50cl',doc:'',factura:'26',cobro:'',matricula:'',comision:'',palets:31},
+    {id:11,previsto:'2026-04-28',carga:'2026-04-28',pedido:'',origen:'BEBYMAD S.L.',destino:'DISTRIBUIDORA CR MONTCADA SL',producto:'Agua Solan de Cabras 50cl',doc:'',factura:'27',cobro:'',matricula:'',comision:'',palets:33},
+    {id:12,previsto:'2026-04-30',carga:'2026-04-30',pedido:'',origen:'BEBYMAD S.L.',destino:'TRIGO VERDAY',producto:'Agua Solan de Cabras',doc:'',factura:'104',cobro:'',matricula:'',comision:'',palets:31},
+  ],
+  facturas:[
+    {id:1,num:'65',cliente:'MONT LAHORE SL',fecha:'2026-03-19',vence:'2026-04-19',importe:2100,estado:'p',cobro:''},
+    {id:2,num:'66',cliente:'TRIGO VERDAY SL',fecha:'2026-03-19',vence:'2026-04-19',importe:1850,estado:'p',cobro:''},
+    {id:3,num:'74',cliente:'VALIENTE SOLDADO SL',fecha:'2026-03-30',vence:'2026-04-30',importe:2400,estado:'p',cobro:''},
+    {id:4,num:'7',cliente:'DISTRIBUIDORA CR MONTCADA SL',fecha:'2026-04-08',vence:'2026-05-08',importe:1950,estado:'c',cobro:'2026-04-20'},
+    {id:5,num:'12',cliente:'DISTRIBUIDORA CR MONTCADA SL',fecha:'2026-04-09',vence:'2026-05-09',importe:1800,estado:'c',cobro:'2026-04-22'},
+  ],
+  matriculas:[
+    {id:1,matricula:'1234-ABC',tipo:'Camión',marca:'Mercedes',modelo:'Actros',conductor:'Juan García',estado:'disponible',notas:''},
+    {id:2,matricula:'5678-DEF',tipo:'Camión',marca:'Volvo',modelo:'FH16',conductor:'Pedro López',estado:'en ruta',notas:''},
+    {id:3,matricula:'9012-GHI',tipo:'Furgón',marca:'Iveco',modelo:'Daily',conductor:'',estado:'taller',notas:'Revisión frenos'},
+  ],
+  contactos:[
+    {id:1,nombre:'MONT LAHORE SL',tipo:'cliente',telefono:'93 111 22 33',email:'mont@lahore.es',direccion:'Barcelona',notas:''},
+    {id:2,nombre:'DISTRIBUIDORA CR MONTCADA SL',tipo:'cliente',telefono:'93 222 33 44',email:'info@crmontcada.es',direccion:'Montcada i Reixac',notas:''},
+    {id:3,nombre:'TRIGO VERDAY SL',tipo:'cliente',telefono:'93 333 44 55',email:'',direccion:'',notas:''},
+    {id:4,nombre:'VALIENTE SOLDADO SL',tipo:'cliente',telefono:'93 444 55 11',email:'',direccion:'',notas:''},
+    {id:5,nombre:'MARMIREK,S.L.',tipo:'proveedor',telefono:'91 444 55 66',email:'marmirek@mail.es',direccion:'Madrid',notas:''},
+    {id:6,nombre:'BEBYMAD S.L.',tipo:'proveedor',telefono:'91 555 66 77',email:'bebymad@mail.es',direccion:'Madrid',notas:''},
+    {id:7,nombre:'OCASION INVERSORA,SL',tipo:'proveedor',telefono:'',email:'',direccion:'',notas:''},
+  ],
+  nid:{v:13,f:6,m:4,c:8}
+};
+
+// ─── SUPABASE ────────────────────────────────────────────────────────────────
+const SB_URL = 'https://ylayhvnrusawegkprijc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYXlodm5ydXNhd2Vna3ByaWpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDU1MzksImV4cCI6MjA5NDE4MTUzOX0.M5YON4C6t8vL48zskq3xJ-eCTgB5iz-6Q-ngEupmkTk';
+const SB_HDR = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+
+async function sbGet(tabla){
+  const r=await fetch(`${SB_URL}/rest/v1/${tabla}?order=id`,{headers:SB_HDR});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(tabla,obj){
+  const {id,created_at,...data}=obj;
+  const r=await fetch(`${SB_URL}/rest/v1/${tabla}`,{method:'POST',headers:SB_HDR,body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+  const res=await r.json();
+  return Array.isArray(res)?res[0]:res;
+}
+async function sbUpdate(tabla,id,obj){
+  const {id:_,created_at,...data}=obj;
+  const r=await fetch(`${SB_URL}/rest/v1/${tabla}?id=eq.${id}`,{method:'PATCH',headers:SB_HDR,body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+  const res=await r.json();
+  return Array.isArray(res)?res[0]:res;
+}
+async function sbDelete(tabla,id){
+  const r=await fetch(`${SB_URL}/rest/v1/${tabla}?id=eq.${id}`,{method:'DELETE',headers:{...SB_HDR,'Prefer':''}});
+  if(!r.ok) throw new Error(await r.text());
+}
+function showLoading(msg){
+  let el=document.getElementById('sb-bar');
+  if(!el){el=document.createElement('div');el.id='sb-bar';el.style.cssText='position:fixed;top:52px;left:0;right:0;background:#1a5fa8;color:#fff;text-align:center;padding:5px;font-size:12px;z-index:999';document.body.appendChild(el);}
+  el.textContent=msg;el.style.display='block';
+}
+function hideLoading(){const el=document.getElementById('sb-bar');if(el)el.style.display='none';}
+
+async function loadAll(){
+  showLoading('☁️ Cargando datos...');
+  try{
+    const [v,f,m,c]=await Promise.all([sbGet('viajes'),sbGet('facturas'),sbGet('matriculas'),sbGet('contactos')]);
+    DB.viajes=v;DB.facturas=f;DB.matriculas=m;DB.contactos=c;
+    hideLoading();rViajes();rAlertas();
+  }catch(e){hideLoading();alert('Error de conexión: '+e.message);}
+}
+
+let sortV={f:'previsto',d:1}, sortF={f:'fecha',d:1};
+let curModal=null, curId=null;
+let lastViajesRows = [];
+
+const today = () => new Date().toISOString().slice(0,10);
+
+// Fecha YYYY-MM-DD → DD/MM/YYYY para mostrar
+function fd(d){
+  if(!d) return '—';
+  if(d.toUpperCase()==='COBRADA') return '✓ Cobrada';
+  try{const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2)}catch(e){return d}
+}
+// Fecha YYYY-MM-DD → DD/MM/YYYY para CSV (sin emoji)
+function fdCSV(d){
+  if(!d) return '';
+  if(d.toUpperCase()==='COBRADA') return 'Cobrada';
+  try{const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]}catch(e){return d}
+}
+
+function uniq(arr){return[...new Set(arr.filter(Boolean))].sort()}
+function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
+// Comisión: si tiene valor manual lo usa, si no calcula palets × 5€
+function comision(v){return v.comision!==''&&v.comision!==undefined ? parseFloat(v.comision)||0 : (parseInt(v.palets)||0)*5}
+// Rellena el campo comisión automáticamente al escribir palets
+function autoComision(){
+  const pal=parseInt(document.getElementById('i-pal').value)||0;
+  const campo=document.getElementById('i-comision');
+  if(campo) campo.value=pal*5;
+}
+function bdg(s,fn,id){
+  const m={c:['c','✅ Cobrado'],p:['p','⏳ Pendiente'],s:['s','❌ Sin factura']};
+  const[cls,lbl]=m[s]||['s','—'];
+  return `<button class="bdg ${cls}" onclick="${fn}(${id})" title="Clic para cambiar">${lbl}</button>`;
+}
+
+// ─── NAVEGACIÓN ───────────────────────────────────────────────────────────────
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+page).classList.add('on');
+  const pages=['viajes','facturas','matriculas','contactos','alertas'];
+  document.querySelectorAll('.nav-btn')[pages.indexOf(page)].classList.add('on');
+  ({viajes:rViajes,facturas:rFacturas,matriculas:rMatriculas,contactos:rContactos,alertas:rAlertas})[page]?.();
+}
+
+// ─── MÉTRICAS ─────────────────────────────────────────────────────────────────
+function rMetrics(){
+  const total=DB.viajes.length;
+  const cob=DB.viajes.filter(v=>cst(v)==='c').length;
+  const pend=DB.viajes.filter(v=>cst(v)==='p').length;
+  const sf=DB.viajes.filter(v=>cst(v)==='s').length;
+  const imp=DB.facturas.filter(f=>f.estado==='p').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
+  const palets=DB.viajes.reduce((s,v)=>s+(parseInt(v.palets)||0),0);
+  const totalComision=palets*5;
+  document.getElementById('metrics').innerHTML=`
+    <div class="mc"><div class="mc-l">Viajes totales</div><div class="mc-v" style="color:#185FA5">${total}</div></div>
+    <div class="mc"><div class="mc-l">Cobrados</div><div class="mc-v" style="color:#3B6D11">${cob}</div></div>
+    <div class="mc"><div class="mc-l">Pend. cobro</div><div class="mc-v" style="color:#B57200">${pend}</div></div>
+    <div class="mc"><div class="mc-l">Sin factura</div><div class="mc-v" style="color:#A32D2D">${sf}</div></div>
+    <div class="mc"><div class="mc-l">Por cobrar</div><div class="mc-v" style="color:#A32D2D;font-size:18px">${imp.toLocaleString('es-ES')} €</div></div>
+    <div class="mc"><div class="mc-l">Total palets</div><div class="mc-v">${palets}</div></div>
+    <div class="mc"><div class="mc-l">Comisión total</div><div class="mc-v" style="color:#185FA5;font-size:18px">${totalComision.toLocaleString('es-ES')} €</div></div>`;
+  const alCnt=pend+sf;
+  const el=document.getElementById('acnt');
+  el.textContent=alCnt>0?alCnt:'';el.style.display=alCnt>0?'':'none';
+}
+
+// ─── VIAJES ──────────────────────────────────────────────────────────────────
+function rViajes(){
+  const q=(document.getElementById('vsearch').value||'').toLowerCase();
+  const fc=document.getElementById('vfcobro').value;
+  const meses=uniq(DB.viajes.map(v=>(v.previsto||'').slice(0,7)));
+  const selMes=document.getElementById('vfmes');
+  const curMes=selMes.value;
+  selMes.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>`<option value="${m}">${m}</option>`).join('');
+  selMes.value=curMes;
+  const fm=selMes.value;
+  let rows=DB.viajes.filter(v=>{
+    if(q&&!JSON.stringify(v).toLowerCase().includes(q))return false;
+    if(fc&&cst(v)!==fc)return false;
+    if(fm&&!(v.previsto||'').startsWith(fm))return false;
+    return true;
+  }).sort((a,b)=>{
+    const av=a[sortV.f]||'',bv=b[sortV.f]||'';
+    return av<bv?-sortV.d:av>bv?sortV.d:0;
+  });
+  lastViajesRows=rows;
+  document.getElementById('vtbody').innerHTML=rows.length?rows.map(v=>`<tr>
+    <td>${fd(v.previsto)}</td>
+    <td>${fd(v.carga)}</td>
+    <td>${fd(v.pedido)}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b6b68">${v.origen||'—'}</td>
+    <td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.destino||'—'}</td>
+    <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b6b68">${v.producto||'—'}</td>
+    <td>${v.doc||'—'}</td>
+    <td>${v.factura||'—'}</td>
+    <td>${v.matricula||'—'}</td>
+    <td style="text-align:center">${v.palets||'—'}</td>
+    <td style="text-align:right;font-weight:500;color:#185FA5">${v.palets ? (parseInt(v.palets)*5).toLocaleString('es-ES')+' €' : '—'}</td>
+    <td>${bdg(cst(v),'toggleCobro',v.id)}</td>
+    <td>${fd(v.cobro)}</td>
+    <td style="display:flex;gap:4px;white-space:nowrap">
+      <button class="btn sm" onclick="openViaje(${v.id})">✏️</button>
+      <button class="btn sm danger" onclick="delViaje(${v.id})">🗑</button>
+    </td>
+  </tr>`).join(''):`<tr><td colspan="15" class="empty">Sin resultados</td></tr>`;
+  if(rows.length){
+    const tPalets=rows.reduce((s,v)=>s+(parseInt(v.palets)||0),0);
+    const tComision=tPalets*5;
+    document.getElementById('vtfoot').innerHTML=`<tr class="totals-row">
+      <td colspan="9" style="text-align:right;font-size:11px;color:#6b6b68">TOTALES:</td>
+      <td style="text-align:center">${tPalets}</td>
+      <td style="text-align:right;font-weight:600;color:#185FA5">${tComision.toLocaleString('es-ES')} €</td>
+      <td colspan="3"></td>
+    </tr>`;
+  } else { document.getElementById('vtfoot').innerHTML=''; }
+  document.getElementById('vrcount').textContent=`Mostrando ${rows.length} de ${DB.viajes.length} viajes`;
+  rMetrics();
+}
+function vs(f){if(sortV.f===f)sortV.d*=-1;else{sortV.f=f;sortV.d=1}rViajes()}
+async function toggleCobro(id){
+  const v=DB.viajes.find(x=>x.id===id);if(!v)return;
+  v.cobro=cst(v)==='c'?'':today();
+  showLoading('Guardando...');
+  try{await sbUpdate('viajes',id,v);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}
+  rViajes();rAlertas();
+}
+async function delViaje(id){
+  if(!confirm('¿Eliminar este viaje?'))return;
+  showLoading('Eliminando...');
+  try{await sbDelete('viajes',id);DB.viajes=DB.viajes.filter(x=>x.id!==id);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}
+  rViajes();rAlertas();
+}
+
+// ─── FACTURAS ────────────────────────────────────────────────────────────────
+function rFacturas(){
+  const q=(document.getElementById('fsearch').value||'').toLowerCase();
+  const fe=document.getElementById('ffest').value;
+  let rows=DB.facturas.filter(f=>{
+    if(q&&!JSON.stringify(f).toLowerCase().includes(q))return false;
+    if(fe&&f.estado!==fe)return false;
+    return true;
+  }).sort((a,b)=>{
+    const av=a[sortF.f]||'',bv=b[sortF.f]||'';
+    return av<bv?-sortF.d:av>bv?sortF.d:0;
+  });
+  const hoy=today();
+  document.getElementById('ftbody').innerHTML=rows.length?rows.map(f=>{
+    const venc=f.estado==='p'&&f.vence&&f.vence<hoy;
+    return `<tr style="${venc?'background:#fff8f8':''}">
+      <td style="font-weight:600">${f.num}</td>
+      <td style="font-weight:500">${f.cliente}</td>
+      <td>${fd(f.fecha)}</td>
+      <td style="color:${venc?'#a32d2d':''};font-weight:${venc?600:400}">${fd(f.vence)}${venc?' ⚠️':''}</td>
+      <td style="text-align:right;font-weight:600">${f.importe?f.importe.toLocaleString('es-ES')+' €':'—'}</td>
+      <td>${bdg(f.estado,'toggleFactura',f.id)}</td>
+      <td>${fd(f.cobro)||'—'}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn sm" onclick="openFactura(${f.id})">✏️</button>
+        <button class="btn sm danger" onclick="delFactura(${f.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty">Sin resultados</td></tr>`;
+  const tPend=rows.filter(f=>f.estado==='p').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
+  const tCob=rows.filter(f=>f.estado==='c').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
+  document.getElementById('ftfoot').innerHTML=`<tr class="totals-row">
+    <td colspan="4" style="text-align:right;font-size:11px;color:#6b6b68">TOTALES:</td>
+    <td style="text-align:right">${(tPend+tCob).toLocaleString('es-ES')} €</td>
+    <td style="font-size:11px;color:#B57200">Pend: ${tPend.toLocaleString('es-ES')} €</td>
+    <td style="font-size:11px;color:#3B6D11">Cobrado: ${tCob.toLocaleString('es-ES')} €</td>
+    <td></td>
+  </tr>`;
+  rMetrics();
+}
+function fs(f){if(sortF.f===f)sortF.d*=-1;else{sortF.f=f;sortF.d=1}rFacturas()}
+async function toggleFactura(id){
+  const f=DB.facturas.find(x=>x.id===id);if(!f)return;
+  if(f.estado==='c'){f.estado='p';f.cobro='';}else{f.estado='c';f.cobro=today();}
+  showLoading('Guardando...');
+  try{await sbUpdate('facturas',id,f);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}
+  rFacturas();rMetrics();
+}
+async function delFactura(id){
+  if(!confirm('¿Eliminar factura?'))return;
+  showLoading('Eliminando...');
+  try{await sbDelete('facturas',id);DB.facturas=DB.facturas.filter(x=>x.id!==id);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}
+  rFacturas();
+}
+
+// ─── MATRÍCULAS ──────────────────────────────────────────────────────────────
+function rMatriculas(){
+  const q=(document.getElementById('msearch').value||'').toLowerCase();
+  const fe=document.getElementById('mfest').value;
+  const rows=DB.matriculas.filter(m=>{
+    if(q&&!JSON.stringify(m).toLowerCase().includes(q))return false;
+    if(fe&&m.estado!==fe)return false;
+    return true;
+  });
+  const estCls={disponible:'est-disp','en ruta':'est-ruta',taller:'est-tall'};
+  const estIco={disponible:'🟢','en ruta':'🔵',taller:'🟡'};
+  document.getElementById('mcards').innerHTML=rows.map(m=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div class="card-name" style="font-size:16px">${m.matricula}</div><div class="card-sub">${m.tipo} · ${m.marca} ${m.modelo}</div></div>
+        <span class="pill ${estCls[m.estado]||''}">${estIco[m.estado]||''} ${m.estado}</span>
+      </div>
+      ${m.conductor?`<div class="card-row">👤 ${m.conductor}</div>`:'<div class="card-row" style="color:#e24b4a">⚠️ Sin conductor</div>'}
+      ${m.notas?`<div class="card-row" style="font-style:italic">${m.notas}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn sm" onclick="openMatricula(${m.id})">✏️ Editar</button>
+        <button class="btn sm danger" onclick="delMat(${m.id})">🗑</button>
+      </div>
+    </div>`).join('')+`<div class="card card-dashed" onclick="openMatricula()">＋ Añadir vehículo</div>`;
+}
+async function delMat(id){if(!confirm('¿Eliminar?'))return;showLoading('Eliminando...');try{await sbDelete('matriculas',id);DB.matriculas=DB.matriculas.filter(x=>x.id!==id);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}rMatriculas()}
+
+// ─── CONTACTOS ───────────────────────────────────────────────────────────────
+function rContactos(){
+  const q=(document.getElementById('csearch').value||'').toLowerCase();
+  const ft=document.getElementById('cftipo').value;
+  const rows=DB.contactos.filter(c=>{
+    if(q&&!JSON.stringify(c).toLowerCase().includes(q))return false;
+    if(ft&&c.tipo!==ft)return false;
+    return true;
+  });
+  document.getElementById('ccards').innerHTML=rows.map(c=>{
+    const ini=c.nombre.split(/[\s,]+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const nv=DB.viajes.filter(v=>v.destino===c.nombre||v.origen===c.nombre).length;
+    return `<div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar ${c.tipo==='cliente'?'av-b':'av-g'}">${ini}</div>
+        <div><div class="card-name">${c.nombre}</div><div class="card-sub">${c.tipo==='cliente'?'🛒 Cliente':'📦 Proveedor'} · ${nv} viaje(s)</div></div>
+      </div>
+      ${c.telefono?`<div class="card-row">📞 ${c.telefono}</div>`:''}
+      ${c.email?`<div class="card-row">✉️ <a href="mailto:${c.email}" style="color:#185FA5">${c.email}</a></div>`:''}
+      ${c.direccion?`<div class="card-row">📍 ${c.direccion}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn sm" onclick="openContacto(${c.id})">✏️ Editar</button>
+        <button class="btn sm danger" onclick="delCon(${c.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('')+`<div class="card card-dashed" onclick="openContacto()">＋ Nuevo contacto</div>`;
+}
+async function delCon(id){if(!confirm('¿Eliminar?'))return;showLoading('Eliminando...');try{await sbDelete('contactos',id);DB.contactos=DB.contactos.filter(x=>x.id!==id);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}rContactos()}
+
+// ─── ALERTAS ─────────────────────────────────────────────────────────────────
+function rAlertas(){
+  const hoy=today();
+  const pend=DB.viajes.filter(v=>cst(v)==='p');
+  const sf=DB.viajes.filter(v=>cst(v)==='s');
+  const fvenc=DB.facturas.filter(f=>f.estado==='p'&&f.vence&&f.vence<hoy);
+  let html='';
+  if(!pend.length&&!sf.length&&!fvenc.length){
+    html=`<div class="empty" style="padding:3rem;font-size:15px">✅ ¡Todo al día, sin alertas!</div>`;
+  } else {
+    if(fvenc.length){
+      html+=`<div class="sec-title" style="color:#a32d2d">⚠️ Facturas vencidas (${fvenc.length})</div>`;
+      html+=fvenc.map(f=>`<div class="alert-item urg">
+        <div style="flex:1"><strong>Fra. ${f.num} — ${f.cliente}</strong><div style="font-size:11px;color:#a32d2d">Venció ${fd(f.vence)} · ${f.importe?f.importe.toLocaleString('es-ES')+' €':''}</div></div>
+        <button class="btn sm ok" onclick="toggleFactura(${f.id});rAlertas()">✅ Cobrada</button>
+        <button class="btn sm" onclick="openFactura(${f.id})">✏️</button>
+      </div>`).join('');
+    }
+    if(pend.length){
+      html+=`<div class="sec-title" style="margin-top:1.2rem;color:#B57200">⏳ Pendientes de cobro (${pend.length})</div>`;
+      html+=pend.map(v=>`<div class="alert-item">
+        <div style="flex:1"><strong>${v.destino||'—'}</strong> · Fra. ${v.factura||'—'}<div style="font-size:11px;color:#6b6b68">${fd(v.previsto)} · ${v.origen||'—'}</div></div>
+        <button class="btn sm ok" onclick="toggleCobro(${v.id});rAlertas()">✅ Cobrado</button>
+        <button class="btn sm" onclick="openViaje(${v.id})">✏️</button>
+      </div>`).join('');
+    }
+    if(sf.length){
+      html+=`<div class="sec-title" style="margin-top:1.2rem;color:#a32d2d">❌ Sin factura (${sf.length})</div>`;
+      html+=sf.map(v=>`<div class="alert-item urg">
+        <div style="flex:1"><strong>${v.destino||'—'}</strong><div style="font-size:11px;color:#6b6b68">${fd(v.previsto)} · ${v.origen||'—'}</div></div>
+        <button class="btn sm" onclick="openViaje(${v.id})">✏️ Completar</button>
+      </div>`).join('');
+    }
+  }
+  document.getElementById('alist').innerHTML=html;
+  rMetrics();
+}
+
+// ─── MODALES EDICIÓN ─────────────────────────────────────────────────────────
+function closeModal(){document.getElementById('mov').style.display='none';curModal=null;curId=null}
+
+function openViaje(id=null){
+  curModal='v';curId=id;
+  const v=id?DB.viajes.find(x=>x.id===id):{};
+  const mats=DB.matriculas.map(m=>`<option value="${m.matricula}"${v.matricula===m.matricula?' selected':''}>${m.matricula} — ${m.marca} ${m.modelo}</option>`).join('');
+  const origenes=uniq([...DB.viajes.map(x=>x.origen),...DB.contactos.filter(c=>c.tipo==='proveedor').map(c=>c.nombre)]);
+  const destinos=uniq([...DB.viajes.map(x=>x.destino),...DB.contactos.filter(c=>c.tipo==='cliente').map(c=>c.nombre)]);
+  const productos=uniq(DB.viajes.map(x=>x.producto));
+  document.getElementById('mtitle').textContent=id?'✏️ Editar viaje':'＋ Nuevo viaje';
+  document.getElementById('mform').innerHTML=`
+    <datalist id="dl-o">${origenes.map(x=>`<option value="${x}">`).join('')}</datalist>
+    <datalist id="dl-d">${destinos.map(x=>`<option value="${x}">`).join('')}</datalist>
+    <datalist id="dl-p">${productos.map(x=>`<option value="${x}">`).join('')}</datalist>
+    <div class="fg">
+      <div class="fl"><label>📅 Fecha prevista</label><input type="date" id="i-prev" value="${v.previsto||''}"></div>
+      <div class="fl"><label>📅 Día de carga</label><input type="date" id="i-carg" value="${v.carga||''}"></div>
+      <div class="fl"><label>📅 Fecha pedido</label><input type="date" id="i-ped" value="${v.pedido||''}"></div>
+      <div class="fl"><label>🚛 Matrícula</label><select id="i-mat"><option value="">— Sin asignar —</option>${mats}</select></div>
+      <div class="fl fgf"><label>📦 Origen (proveedor)</label><input type="text" id="i-ori" value="${v.origen||''}" list="dl-o" autocomplete="off"></div>
+      <div class="fl fgf"><label>🏪 Destino (cliente)</label><input type="text" id="i-des" value="${v.destino||''}" list="dl-d" autocomplete="off"></div>
+      <div class="fl fgf"><label>🧴 Producto</label><input type="text" id="i-pro" value="${v.producto||''}" list="dl-p" autocomplete="off"></div>
+      <div class="fl"><label>📄 Documento</label><input type="text" id="i-doc" value="${v.doc||''}"></div>
+      <div class="fl"><label>🧾 Nº Factura</label><input type="text" id="i-fac" value="${v.factura||''}"></div>
+      <div class="fl"><label>✅ Fecha cobro</label><input type="date" id="i-cob" value="${(v.cobro&&v.cobro!=='COBRADA')?v.cobro:''}"></div>
+      <div class="fl"><label>📦 Palets</label><input type="number" id="i-pal" value="${v.palets||''}" min="0"></div>
+    </div>`;
+  document.getElementById('mov').style.display='flex';
+}
+
+function openFactura(id=null){
+  curModal='f';curId=id;
+  const f=id?DB.facturas.find(x=>x.id===id):{};
+  const clientes=uniq([...DB.contactos.filter(c=>c.tipo==='cliente').map(c=>c.nombre),...DB.facturas.map(x=>x.cliente)]);
+  document.getElementById('mtitle').textContent=id?'✏️ Editar factura':'＋ Nueva factura';
+  document.getElementById('mform').innerHTML=`
+    <datalist id="dl-cl">${clientes.map(x=>`<option value="${x}">`).join('')}</datalist>
+    <div class="fg">
+      <div class="fl"><label>🧾 Nº Factura</label><input type="text" id="i-num" value="${f.num||''}"></div>
+      <div class="fl fgf"><label>🏪 Cliente</label><input type="text" id="i-cli" value="${f.cliente||''}" list="dl-cl" autocomplete="off"></div>
+      <div class="fl"><label>📅 Fecha factura</label><input type="date" id="i-ffec" value="${f.fecha||''}"></div>
+      <div class="fl"><label>⏰ Vencimiento</label><input type="date" id="i-fven" value="${f.vence||''}"></div>
+      <div class="fl"><label>💶 Importe (€)</label><input type="number" id="i-imp" value="${f.importe||''}" step="0.01" min="0"></div>
+      <div class="fl"><label>📊 Estado</label><select id="i-est"><option value="p"${f.estado!=='c'?' selected':''}>⏳ Pendiente</option><option value="c"${f.estado==='c'?' selected':''}>✅ Cobrada</option></select></div>
+      <div class="fl"><label>✅ Fecha cobro</label><input type="date" id="i-fcob" value="${f.cobro||''}"></div>
+    </div>`;
+  document.getElementById('mov').style.display='flex';
+}
+
+function openMatricula(id=null){
+  curModal='m';curId=id;
+  const m=id?DB.matriculas.find(x=>x.id===id):{};
+  const conductores=uniq(DB.matriculas.map(x=>x.conductor));
+  document.getElementById('mtitle').textContent=id?'✏️ Editar vehículo':'＋ Nuevo vehículo';
+  document.getElementById('mform').innerHTML=`
+    <datalist id="dl-con">${conductores.map(x=>`<option value="${x}">`).join('')}</datalist>
+    <div class="fg">
+      <div class="fl"><label>🪪 Matrícula</label><input type="text" id="i-mmat" value="${m.matricula||''}" placeholder="1234-ABC"></div>
+      <div class="fl"><label>🚛 Tipo</label><select id="i-mtipo"><option${m.tipo==='Camión'?' selected':''}>Camión</option><option${m.tipo==='Furgón'?' selected':''}>Furgón</option><option${m.tipo==='Trailer'?' selected':''}>Trailer</option><option${m.tipo==='Otro'?' selected':''}>Otro</option></select></div>
+      <div class="fl"><label>🏷 Marca</label><input type="text" id="i-mmarca" value="${m.marca||''}"></div>
+      <div class="fl"><label>🔧 Modelo</label><input type="text" id="i-mmod" value="${m.modelo||''}"></div>
+      <div class="fl fgf"><label>👤 Conductor</label><input type="text" id="i-mcon" value="${m.conductor||''}" list="dl-con" autocomplete="off"></div>
+      <div class="fl"><label>🟢 Estado</label><select id="i-mest"><option value="disponible"${m.estado==='disponible'?' selected':''}>🟢 Disponible</option><option value="en ruta"${m.estado==='en ruta'?' selected':''}>🔵 En ruta</option><option value="taller"${m.estado==='taller'?' selected':''}>🟡 En taller</option></select></div>
+      <div class="fl fgf"><label>📝 Notas</label><textarea id="i-mnot">${m.notas||''}</textarea></div>
+    </div>`;
+  document.getElementById('mov').style.display='flex';
+}
+
+function openContacto(id=null){
+  curModal='c';curId=id;
+  const c=id?DB.contactos.find(x=>x.id===id):{};
+  document.getElementById('mtitle').textContent=id?'✏️ Editar contacto':'＋ Nuevo contacto';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg">
+      <div class="fl fgf"><label>🏢 Nombre / Empresa</label><input type="text" id="i-cnomb" value="${c.nombre||''}"></div>
+      <div class="fl"><label>📂 Tipo</label><select id="i-ctipo"><option value="cliente"${c.tipo==='cliente'?' selected':''}>🛒 Cliente</option><option value="proveedor"${c.tipo==='proveedor'?' selected':''}>📦 Proveedor</option></select></div>
+      <div class="fl"><label>📞 Teléfono</label><input type="tel" id="i-ctel" value="${c.telefono||''}"></div>
+      <div class="fl fgf"><label>✉️ Email</label><input type="email" id="i-ceml" value="${c.email||''}"></div>
+      <div class="fl fgf"><label>📍 Dirección</label><input type="text" id="i-cdir" value="${c.direccion||''}"></div>
+      <div class="fl fgf"><label>📝 Notas</label><textarea id="i-cnot">${c.notas||''}</textarea></div>
+    </div>`;
+  document.getElementById('mov').style.display='flex';
+}
+
+async function saveModal(){
+  showLoading('Guardando...');
+  try{
+    if(curModal==='v'){
+      const d={previsto:document.getElementById('i-prev').value||null,carga:document.getElementById('i-carg').value||null,pedido:document.getElementById('i-ped').value||null,matricula:document.getElementById('i-mat').value,origen:document.getElementById('i-ori').value,destino:document.getElementById('i-des').value,producto:document.getElementById('i-pro').value,doc:document.getElementById('i-doc').value,factura:document.getElementById('i-fac').value,cobro:document.getElementById('i-cob').value||null,palets:parseInt(document.getElementById('i-pal').value)||null};
+      if(curId){
+        await sbUpdate('viajes',curId,d);
+        const i=DB.viajes.findIndex(x=>x.id===curId);DB.viajes[i]={...DB.viajes[i],...d};
+      }else{
+        const r=await sbInsert('viajes',d);
+        DB.viajes.push(r||d);
+      }
+      closeModal();hideLoading();rViajes();
+    } else if(curModal==='f'){
+      const d={num:document.getElementById('i-num').value,cliente:document.getElementById('i-cli').value,fecha:document.getElementById('i-ffec').value||null,vence:document.getElementById('i-fven').value||null,importe:parseFloat(document.getElementById('i-imp').value)||0,estado:document.getElementById('i-est').value,cobro:document.getElementById('i-fcob').value||null};
+      if(curId){
+        await sbUpdate('facturas',curId,d);
+        const i=DB.facturas.findIndex(x=>x.id===curId);DB.facturas[i]={...DB.facturas[i],...d};
+      }else{
+        const r=await sbInsert('facturas',d);
+        DB.facturas.push(r||d);
+      }
+      closeModal();hideLoading();rFacturas();
+    } else if(curModal==='m'){
+      const d={matricula:document.getElementById('i-mmat').value,tipo:document.getElementById('i-mtipo').value,marca:document.getElementById('i-mmarca').value,modelo:document.getElementById('i-mmod').value,conductor:document.getElementById('i-mcon').value,estado:document.getElementById('i-mest').value,notas:document.getElementById('i-mnot').value};
+      if(curId){
+        await sbUpdate('matriculas',curId,d);
+        const i=DB.matriculas.findIndex(x=>x.id===curId);DB.matriculas[i]={...DB.matriculas[i],...d};
+      }else{
+        const r=await sbInsert('matriculas',d);
+        DB.matriculas.push(r||d);
+      }
+      closeModal();hideLoading();rMatriculas();
+    } else if(curModal==='c'){
+      const d={nombre:document.getElementById('i-cnomb').value,tipo:document.getElementById('i-ctipo').value,telefono:document.getElementById('i-ctel').value,email:document.getElementById('i-ceml').value,direccion:document.getElementById('i-cdir').value,notas:document.getElementById('i-cnot').value};
+      if(curId){
+        await sbUpdate('contactos',curId,d);
+        const i=DB.contactos.findIndex(x=>x.id===curId);DB.contactos[i]={...DB.contactos[i],...d};
+      }else{
+        const r=await sbInsert('contactos',d);
+        DB.contactos.push(r||d);
+      }
+      closeModal();hideLoading();rContactos();
+    }
+  }catch(e){hideLoading();alert('Error al guardar: '+e.message);}
+}
+
+// ─── EXPORTAR (MEJORADO) ──────────────────────────────────────────────────────
+function openExport(){document.getElementById('expov').style.display='flex'}
+function closeExp(){document.getElementById('expov').style.display='none'}
+
+function buildCSV(rows, cols){
+  // Mapa de columnas: id → {header, getValue}
+  const colDefs = {
+    previsto: {h:'Fecha Prevista',    fn: v => fdCSV(v.previsto)},
+    carga:    {h:'Dia Carga',         fn: v => fdCSV(v.carga)},
+    pedido:   {h:'Fecha Pedido',      fn: v => fdCSV(v.pedido)},
+    origen:   {h:'Origen',            fn: v => v.origen||''},
+    destino:  {h:'Cliente / Destino', fn: v => v.destino||''},
+    producto: {h:'Producto',          fn: v => v.producto||''},
+    doc:      {h:'Documento',         fn: v => v.doc||''},
+    factura:  {h:'Factura',           fn: v => v.factura||''},
+    matricula:{h:'Matricula',         fn: v => v.matricula||''},
+    bi:       {h:'Comision (EUR)',    fn: v => v.palets ? String(parseInt(v.palets)*5) : '0'},
+    palets:   {h:'Palets',            fn: v => v.palets||''},
+    cobro:    {h:'Estado Cobro',      fn: v => ({c:'Cobrado',p:'Pendiente',s:'Sin factura'})[cst(v)]},
+    fcobro:   {h:'Fecha Cobro',       fn: v => fdCSV(v.cobro)},
+  };
+
+  const activeCols = cols.filter(c => colDefs[c]);
+  const sep = ';'; // punto y coma → Excel español lo abre bien
+
+  // Cabecera
+  const header = activeCols.map(c => colDefs[c].h).join(sep);
+
+  // Filas de datos
+  const dataRows = rows.map(v =>
+    activeCols.map(c => {
+      const val = String(colDefs[c].fn(v)).replace(/"/g,'""');
+      // Entrecomillar si contiene sep, salto de línea o comillas
+      return (val.includes(sep)||val.includes('\n')||val.includes('"')) ? `"${val}"` : val;
+    }).join(sep)
+  );
+
+  // Fila de totales al final
+  const tPalets = rows.reduce((s,v)=>s+(parseInt(v.palets)||0),0);
+  const tComisionExp = tPalets*5;
+  const totals = activeCols.map(c => {
+    if(c==='palets') return tPalets;
+    if(c==='bi') return tComisionExp>0 ? String(tComisionExp.toFixed(2)).replace('.',',') : '';
+    if(c==='previsto') return 'TOTAL';
+    return '';
+  }).join(sep);
+
+  return '\uFEFF' + [header, ...dataRows, '', totals].join('\r\n');
+}
+
+function doExport(){
+  const scope = document.querySelector('input[name="exp-scope"]:checked').value;
+  let rows;
+  if(scope==='todos') rows = [...DB.viajes];
+  else if(scope==='filtro') rows = lastViajesRows;
+  else rows = DB.viajes.filter(v=>cst(v)==='p');
+  rows = rows.sort((a,b)=>(a.previsto||'')>(b.previsto||'')?1:-1);
+
+  const colIds = ['previsto','carga','pedido','origen','destino','producto','doc','factura','matricula','bi','palets','cobro','fcobro'];
+  const activeCols = colIds.filter(id => {
+    const el = document.getElementById('col-'+id);
+    return el ? el.checked : false;
+  });
+
+  if(!activeCols.length){alert('Selecciona al menos una columna');return}
+
+  const csv = buildCSV(rows, activeCols);
+  const fileName = 'planning_camiones_' + today() + '.csv';
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName; a.click();
+  URL.revokeObjectURL(url);
+  closeExp();
+}
+
+function exportFacturasExcel(){
+  const sep = ';';
+  const hoy = today();
+  const header = ['N Factura','Cliente','Fecha Factura','Vencimiento','Importe (EUR)','Estado','Fecha Cobro','Vencida'].join(sep);
+  const rows = DB.facturas.sort((a,b)=>a.fecha>b.fecha?1:-1).map(f => [
+    f.num, f.cliente, fdCSV(f.fecha), fdCSV(f.vence),
+    f.importe ? String(f.importe).replace('.',',') : '',
+    f.estado==='c'?'Cobrada':'Pendiente',
+    fdCSV(f.cobro),
+    (f.estado==='p'&&f.vence&&f.vence<hoy)?'SI':'NO'
+  ].map(v=>{const s=String(v).replace(/"/g,'""');return s.includes(sep)?`"${s}"`:s}).join(sep));
+  const tPend = DB.facturas.filter(f=>f.estado==='p').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
+  const tCob  = DB.facturas.filter(f=>f.estado==='c').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
+  const totals = ['TOTAL','','','',String((tPend+tCob).toFixed(2)).replace('.',','),'Pendiente: '+String(tPend.toFixed(2)).replace('.',','),'Cobrado: '+String(tCob.toFixed(2)).replace('.',','),''].join(sep);
+  const csv = '\uFEFF' + [header,...rows,'',totals].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'facturas_'+today()+'.csv';
+  a.click();
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeExp()}});
+document.getElementById('topdate').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+loadAll();
+</script>
+</body>
+</html>
