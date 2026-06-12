@@ -699,6 +699,11 @@ function rViajes(){
     if(fm&&!(v.previsto||'').startsWith(fm)&&!(v.pedido||'').startsWith(fm))return false;
     return true;
   }).sort((a,b)=>{
+    // Prioridad: sin factura → pendiente → cobrado
+    const pri={s:0,p:1,c:2};
+    const pa=pri[cst(a)]??1, pb=pri[cst(b)]??1;
+    if(pa!==pb) return pa-pb;
+    // Dentro de cada grupo, orden por el campo seleccionado
     const av=a[sortV.f]||'',bv=b[sortV.f]||'';
     return av<bv?-sortV.d:av>bv?sortV.d:0;
   });
