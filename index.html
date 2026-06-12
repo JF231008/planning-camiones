@@ -113,6 +113,68 @@ tr:hover td{background:#fafaf9}
 .add-linea:hover{background:#dbeafe}
 .del-linea{background:none;border:none;color:#bbb;cursor:pointer;font-size:17px;padding:2px 6px;line-height:1;border-radius:4px}
 .del-linea:hover{color:#a32d2d;background:#fcebeb}
+/* ─── VIAJE CARDS MOBILE ─── */
+.vcards-mobile{display:none;flex-direction:column;gap:10px}
+.vcard{background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.vcard-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.vcard-cliente{font-size:15px;font-weight:600;color:#1c1c1a;flex:1;line-height:1.2}
+.vcard-actions{display:flex;gap:6px;flex-shrink:0}
+.vcard-row{display:flex;align-items:center;gap:6px;font-size:12px;color:#6b6b68;margin-bottom:4px}
+.vcard-row strong{color:#1c1c1a;font-weight:500}
+.vcard-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #f0efed}
+/* ─── BOTTOM NAV (mobile) ─── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e3;z-index:100;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;border:none;background:none;cursor:pointer;border-radius:8px;min-width:56px;transition:all .15s}
+.bnav-btn .bico{font-size:20px;line-height:1}
+.bnav-btn .blbl{font-size:9px;font-weight:600;color:#6b6b68;text-transform:uppercase;letter-spacing:.3px}
+.bnav-btn.on .blbl{color:#1a5fa8}
+.bnav-btn .bcnt{background:#e24b4a;color:#fff;border-radius:99px;font-size:9px;padding:1px 4px;position:absolute;top:-2px;right:-2px}
+.bnav-ico-wrap{position:relative;display:inline-block}
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  /* topbar */
+  .topbar{padding:0 14px;height:48px}
+  .topbar h1{font-size:14px}
+  .topbar .nav{display:none}
+  #topdate{display:none}
+  /* bottom nav */
+  .bottom-nav{display:block}
+  /* main */
+  .main{padding:12px;padding-bottom:80px}
+  /* metrics: 2 cols */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .mc-v{font-size:20px}
+  /* toolbar */
+  .toolbar{gap:6px}
+  .toolbar input{min-width:unset;width:100%;flex:1 1 100%}
+  .toolbar select{flex:1 1 calc(50% - 3px)}
+  .toolbar .btn.p{flex:1 1 100%;justify-content:center;height:40px;font-size:14px}
+  .toolbar .btn.export{display:none}
+  /* table → hide, show cards */
+  .tw{display:none}
+  .vcards-mobile{display:flex}
+  /* modal: slide up desde abajo */
+  .ov{padding-top:0;align-items:flex-end}
+  .modal{width:100%;max-width:100%;max-height:94vh;border-radius:18px 18px 0 0;padding:18px 16px}
+  /* form grid: 1 col */
+  .fg{grid-template-columns:1fr}
+  .fgf{grid-column:1}
+  /* mbt buttons */
+  .mbt{flex-direction:column-reverse}
+  .mbt .btn{width:100%;justify-content:center;height:44px;font-size:14px}
+  /* proc track */
+  .proc-step{min-width:48px;padding:4px 4px}
+  .proc-ico{font-size:18px}
+  /* cards grid */
+  .cards{grid-template-columns:1fr}
+  /* export modal */
+  #expov .modal{border-radius:18px 18px 0 0}
+}
+@media(max-width:400px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .proc-lbl{font-size:8px}
+}
 /* Export modal */
 .exp-opt{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e5e5e3;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:8px}
 .exp-opt:hover{border-color:#1a5fa8;background:#f0f5ff}
@@ -139,6 +201,16 @@ tr:hover td{background:#fafaf9}
     <button class="btn sm" onclick="openSettings()" title="Ajustes">⚙️ Ajustes</button>
   </div>
 </div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn on" id="bn-viajes" onclick="go('viajes')"><span class="bico">📦</span><span class="blbl">Viajes</span></button>
+    <button class="bnav-btn" id="bn-facturas" onclick="go('facturas')"><span class="bico">🧾</span><span class="blbl">Facturas</span></button>
+    <button class="bnav-btn" id="bn-matriculas" onclick="go('matriculas')"><span class="bico">🚚</span><span class="blbl">Vehículos</span></button>
+    <button class="bnav-btn" id="bn-contactos" onclick="go('contactos')"><span class="bico">👥</span><span class="blbl">Contactos</span></button>
+    <button class="bnav-btn" id="bn-alertas" onclick="go('alertas')"><span class="bnav-ico-wrap"><span class="bico">🔔</span><span class="bcnt" id="bacnt" style="display:none"></span></span><span class="blbl">Alertas</span></button>
+  </div>
+</nav>
 
 <div class="main">
   <div id="metrics" class="metrics"></div>
@@ -181,6 +253,7 @@ tr:hover td{background:#fafaf9}
         <tfoot id="vtfoot"></tfoot>
       </table>
     </div>
+    <div id="vcards-mobile" class="vcards-mobile"></div>
     <div class="rcount" id="vrcount"></div>
   </div>
 
@@ -574,9 +647,12 @@ function resetModalBtns(){
 function go(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+page).classList.add('on');
   const pages=['viajes','facturas','matriculas','contactos','alertas'];
   document.querySelectorAll('.nav-btn')[pages.indexOf(page)].classList.add('on');
+  const bn=document.getElementById('bn-'+page);
+  if(bn) bn.classList.add('on');
   ({viajes:rViajes,facturas:rFacturas,matriculas:rMatriculas,contactos:rContactos,alertas:rAlertas})[page]?.();
 }
 
@@ -600,6 +676,8 @@ function rMetrics(){
   const alCnt=pend+sf;
   const el=document.getElementById('acnt');
   el.textContent=alCnt>0?alCnt:'';el.style.display=alCnt>0?'':'none';
+  const bel=document.getElementById('bacnt');
+  if(bel){bel.textContent=alCnt>0?alCnt:'';bel.style.display=alCnt>0?'':'none';}
 }
 
 // ─── VIAJES ──────────────────────────────────────────────────────────────────
@@ -661,6 +739,37 @@ function rViajes(){
     </tr>`;
   } else { document.getElementById('vtfoot').innerHTML=''; }
   document.getElementById('vrcount').textContent=`Mostrando ${rows.length} de ${DB.viajes.length} viajes`;
+  // Tarjetas móvil
+  const mc=document.getElementById('vcards-mobile');
+  if(mc) mc.innerHTML=rows.length?rows.map(v=>{
+    const proc=getProceso(v);
+    const cobSt=cst(v);
+    const cobMap={c:['#eaf3de','#27500a','✅ Cobrado'],p:['#faeeda','#633806','⏳ Pendiente'],s:['#fcebeb','#791f1f','❌ Sin factura']};
+    const[cbg,cfg,clbl]=cobMap[cobSt];
+    return `<div class="vcard">
+      <div class="vcard-head">
+        <div>
+          <div class="vcard-cliente">${v.destino||'—'}</div>
+          <span class="pbdg pbdg-${proc.cls}" style="margin-top:4px;display:inline-flex">${proc.label}</span>
+        </div>
+        <div class="vcard-actions">
+          <button class="btn sm wa" onclick="sendWhatsApp(${v.id})" title="WhatsApp">💬</button>
+          <button class="btn sm" onclick="openViaje(${v.id})">✏️</button>
+        </div>
+      </div>
+      <div class="vcard-row">🏭 <strong>${v.origen||'—'}</strong></div>
+      <div class="vcard-row">📦 <strong>${productoDisplay(v)}</strong>${v.palets?' · '+v.palets+' pal.':''}</div>
+      <div class="vcard-row">
+        ${v.previsto?'📅 '+fd(v.previsto):''}
+        ${v.carga?' &nbsp;·&nbsp; 🚛 '+fd(v.carga):''}
+        ${v.factura?' &nbsp;·&nbsp; 🧾 '+v.factura:''}
+      </div>
+      <div class="vcard-footer">
+        <span style="background:${cbg};color:${cfg};padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600">${clbl}</span>
+        <button class="btn sm danger" onclick="delViaje(${v.id})">🗑 Eliminar</button>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty">Sin resultados</div>`;
   rMetrics();
 }
 function vs(f){if(sortV.f===f)sortV.d*=-1;else{sortV.f=f;sortV.d=1}rViajes()}
