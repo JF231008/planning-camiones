@@ -584,7 +584,6 @@ function sendWhatsApp(id){
     '',
     `📊 *Total palets:* ${totalPal}`,
   ];
-  if(com) partes.push(`💶 *Comisión:* ${com.toLocaleString('es-ES')} €`);
   partes.push('');
   if(v.pedido) partes.push(`📅 *Fecha pedido:* ${fd(v.pedido)}`);
   if(v.previsto) partes.push(`📅 *Entrega prevista:* ${fd(v.previsto)}`);
