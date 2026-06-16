@@ -175,6 +175,16 @@ tr:hover td{background:#fafaf9}
   .metrics{grid-template-columns:repeat(2,1fr)}
   .proc-lbl{font-size:8px}
 }
+/* ─── TOOLTIP PRODUCTO ─── */
+.prod-wrap{position:relative;cursor:default;display:inline-block;max-width:160px}
+.prod-preview{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b6b68;font-size:12px;border-bottom:1px dashed #c4c4c0}
+.prod-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:300;background:#1c1c1a;color:#f5f5f4;border-radius:10px;padding:12px 14px;min-width:230px;max-width:300px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:12px;line-height:1.7;white-space:nowrap}
+.prod-tip::before{content:'';position:absolute;top:-5px;left:14px;width:10px;height:10px;background:#1c1c1a;transform:rotate(45deg);border-radius:2px}
+.prod-wrap:hover .prod-tip{display:block}
+.prod-tip-line{display:flex;align-items:center;gap:6px;padding:2px 0}
+.prod-tip-line:not(:last-child){border-bottom:1px solid rgba(255,255,255,.08)}
+.prod-tip-sep{border:none;border-top:1px solid rgba(255,255,255,.15);margin:6px 0}
+.prod-tip-total{font-weight:600;color:#86efac;font-size:11px}
 /* Export modal */
 .exp-opt{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e5e5e3;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:8px}
 .exp-opt:hover{border-color:#1a5fa8;background:#f0f5ff}
@@ -529,6 +539,29 @@ function productoDisplay(v){
   return v.producto||'—';
 }
 
+// Celda con tooltip de desglose completo
+function productoCell(v){
+  const lineas=getLineas(v);
+  const totalPal=lineas.reduce((s,l)=>s+(parseInt(l.pal)||0),0);
+  const com=totalPal*4;
+  const hayDesglose=lineas.length>1||(lineas[0]&&lineas[0].f)||(lineas[0]&&lineas[0].pal);
+  if(!hayDesglose) return `<span style="color:#6b6b68;font-size:12px">${v.producto||'—'}</span>`;
+  const lineasHtml=lineas.map(l=>`
+    <div class="prod-tip-line">
+      <span>📦</span>
+      <span><strong>${l.p||'—'}</strong>${l.f?' <span style="opacity:.7">('+l.f+')</span>':''}</span>
+      ${l.pal?`<span style="margin-left:auto;opacity:.8">${l.pal} pal.</span>`:''}
+    </div>`).join('');
+  return `<div class="prod-wrap">
+    <div class="prod-preview">${productoDisplay(v)}</div>
+    <div class="prod-tip">
+      ${lineasHtml}
+      <hr class="prod-tip-sep">
+      <div class="prod-tip-total">📊 ${totalPal} palets · ${com.toLocaleString('es-ES')} €</div>
+    </div>
+  </div>`;
+}
+
 // ─── WHATSAPP ─────────────────────────────────────────────────────────────────
 function sendWhatsApp(id){
   const v=DB.viajes.find(x=>x.id===id);
@@ -718,7 +751,7 @@ function rViajes(){
       <td>${fd(v.pedido)}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b6b68">${v.origen||'—'}</td>
       <td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.destino||'—'}</td>
-      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b6b68">${productoDisplay(v)}</td>
+      <td>${productoCell(v)}</td>
       <td>${v.doc||'—'}</td>
       <td>${v.factura||'—'}</td>
       <td>${v.matricula||'—'}</td>
