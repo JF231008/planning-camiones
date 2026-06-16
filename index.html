@@ -797,9 +797,12 @@ function rViajes(){
       <div class="vcard-row">🏭 <strong>${v.origen||'—'}</strong></div>
       <div class="vcard-row">📦 <strong>${productoDisplay(v)}</strong>${v.palets?' · '+v.palets+' pal.':''}</div>
       <div class="vcard-row">
+        ${v.doc?'🔢 Ref: <strong>'+v.doc+'</strong>':''}
+        ${v.factura?' &nbsp;·&nbsp; 🧾 '+v.factura:''}
+      </div>
+      <div class="vcard-row">
         ${v.previsto?'📅 '+fd(v.previsto):''}
         ${v.carga?' &nbsp;·&nbsp; 🚛 '+fd(v.carga):''}
-        ${v.factura?' &nbsp;·&nbsp; 🧾 '+v.factura:''}
       </div>
       <div class="vcard-footer">
         <span style="background:${cbg};color:${cfg};padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600">${clbl}</span>
