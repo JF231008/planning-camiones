@@ -97,8 +97,9 @@ tr:hover td{background:#fafaf9}
 .pbdg{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
 .pbdg-1{background:#fef3c7;color:#92400e}
 .pbdg-2{background:#dbeafe;color:#1e40af}
-.pbdg-3{background:#d1fae5;color:#065f46}
+.pbdg-3{background:#fff3e0;color:#b06000}
 .pbdg-4{background:#eaf3de;color:#27500a}
+.pbdg-a{background:#fce8e8;color:#a32d2d;border:1px solid #f09595}
 /* ─── MODAL SECTIONS ─── */
 .msec{border:1px solid #e5e5e3;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fafaf9}
 .msec-title{font-size:10px;font-weight:700;color:#6b6b68;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
@@ -510,10 +511,14 @@ function bdg(s,fn,id){
 
 // ─── PROCESO (inferido de los campos existentes) ──────────────────────────────
 function getProceso(v){
-  if((v.cobro||'').trim()) return {step:4,label:'✅ Cobrado',cls:'4'};
-  if((v.carga||'').trim()) return {step:3,label:'🚛 Entregado',cls:'3'};
-  if((v.factura||'').trim()) return {step:2,label:'📄 Pro forma',cls:'2'};
-  return {step:1,label:'📋 Pedido',cls:'1'};
+  const hasFac=(v.factura||'').trim()!=='';
+  const hasCarga=(v.carga||'').trim()!=='';
+  const hasCobro=(v.cobro||'').trim()!=='';
+  if(hasCarga && hasCobro)  return {step:4, label:'✅ Completado',              cls:'4'};
+  if(hasCobro && !hasCarga) return {step:4, label:'⚠️ Cobrado · Pend. entrega', cls:'a'};
+  if(hasCarga && !hasCobro) return {step:3, label:'🚛 Entregado · Pend. cobro', cls:'3'};
+  if(hasFac)                return {step:2, label:'📄 Pro forma',               cls:'2'};
+  return                          {step:1, label:'📋 Pedido',                  cls:'1'};
 }
 
 // ─── LÍNEAS: decodifica JSON o devuelve línea simple de campos legacy ─────────
@@ -951,15 +956,23 @@ async function delCon(id){if(!confirm('¿Eliminar?'))return;showLoading('Elimina
 // ─── ALERTAS ─────────────────────────────────────────────────────────────────
 function rAlertas(){
   const hoy=today();
-  const pend=DB.viajes.filter(v=>cst(v)==='p');
+  const cobrSinEntregar=DB.viajes.filter(v=>(v.cobro||'').trim()&&!(v.carga||'').trim());
+  const pend=DB.viajes.filter(v=>cst(v)==='p'&&!(v.cobro||'').trim());
   const sf=DB.viajes.filter(v=>cst(v)==='s');
   const fvenc=DB.facturas.filter(f=>f.estado==='p'&&f.vence&&f.vence<hoy);
   let html='';
-  if(!pend.length&&!sf.length&&!fvenc.length){
+  if(!cobrSinEntregar.length&&!pend.length&&!sf.length&&!fvenc.length){
     html=`<div class="empty" style="padding:3rem;font-size:15px">✅ ¡Todo al día, sin alertas!</div>`;
   } else {
+    if(cobrSinEntregar.length){
+      html+=`<div class="sec-title" style="color:#a32d2d">⚠️ Cobrados pero aún no entregados (${cobrSinEntregar.length})</div>`;
+      html+=cobrSinEntregar.map(v=>`<div class="alert-item urg">
+        <div style="flex:1"><strong>${v.destino||'—'}</strong> · Cobro: ${fd(v.cobro)}<div style="font-size:11px;color:#a32d2d">Pago recibido — pendiente confirmar entrega (fecha de carga)</div></div>
+        <button class="btn sm" onclick="openViaje(${v.id})">✏️ Marcar entrega</button>
+      </div>`).join('');
+    }
     if(fvenc.length){
-      html+=`<div class="sec-title" style="color:#a32d2d">⚠️ Facturas vencidas (${fvenc.length})</div>`;
+      html+=`<div class="sec-title" style="${cobrSinEntregar.length?'margin-top:1.2rem;':''}color:#a32d2d">⚠️ Facturas vencidas (${fvenc.length})</div>`;
       html+=fvenc.map(f=>`<div class="alert-item urg">
         <div style="flex:1"><strong>Fra. ${f.num} — ${f.cliente}</strong><div style="font-size:11px;color:#a32d2d">Venció ${fd(f.vence)} · ${f.importe?f.importe.toLocaleString('es-ES')+' €':''}</div></div>
         <button class="btn sm ok" onclick="toggleFactura(${f.id});rAlertas()">✅ Cobrada</button>
@@ -967,7 +980,7 @@ function rAlertas(){
       </div>`).join('');
     }
     if(pend.length){
-      html+=`<div class="sec-title" style="margin-top:1.2rem;color:#B57200">⏳ Pendientes de cobro (${pend.length})</div>`;
+      html+=`<div class="sec-title" style="margin-top:1.2rem;color:#B57200">⏳ Entregados · Pendientes de cobro (${pend.length})</div>`;
       html+=pend.map(v=>`<div class="alert-item">
         <div style="flex:1"><strong>${v.destino||'—'}</strong> · Fra. ${v.factura||'—'}<div style="font-size:11px;color:#6b6b68">${fd(v.previsto)} · ${v.origen||'—'}</div></div>
         <button class="btn sm ok" onclick="toggleCobro(${v.id});rAlertas()">✅ Cobrado</button>
@@ -1015,11 +1028,13 @@ function openViaje(id=null){
     ).join('')}
   </div>`;
 
+  const alertBanner=proc.cls==='a'?`<div style="background:#fce8e8;border:1px solid #f09595;border-radius:8px;padding:9px 13px;font-size:12px;color:#a32d2d;margin-bottom:12px;display:flex;align-items:center;gap:8px">⚠️ <span><strong>Cobro recibido pero pedido aún no entregado.</strong> Rellena la fecha de carga para marcar la entrega como realizada.</span></div>`:''
   document.getElementById('mtitle').textContent=id?'✏️ Editar pedido':'📋 Nuevo pedido';
   document.getElementById('mform').innerHTML=`
     <datalist id="dl-o">${origenes.map(x=>`<option value="${x}">`).join('')}</datalist>
     <datalist id="dl-d">${destinos.map(x=>`<option value="${x}">`).join('')}</datalist>
     ${tracker}
+    ${alertBanner}
     <div class="msec">
       <div class="msec-title">🗺️ Ruta</div>
       <div class="fg">
