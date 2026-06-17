@@ -689,6 +689,12 @@ function go(page){
 }
 
 // ─── MÉTRICAS ─────────────────────────────────────────────────────────────────
+function fmtMes(ym){
+  if(!ym)return '';
+  const n=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const[y,m]=ym.split('-');
+  return n[parseInt(m)-1]+' '+y;
+}
 function rMetrics(){
   const total=DB.viajes.length;
   const cob=DB.viajes.filter(v=>cst(v)==='c').length;
@@ -697,8 +703,11 @@ function rMetrics(){
   const imp=DB.facturas.filter(f=>f.estado==='p').reduce((s,f)=>s+(parseFloat(f.importe)||0),0);
   const palets=DB.viajes.reduce((s,v)=>s+(parseInt(v.palets)||0),0);
   const totalComision=palets*4;
+  const fm=(document.getElementById('vfmes')||{}).value||'';
+  const mesCnt=fm?DB.viajes.filter(v=>(v.previsto||'').startsWith(fm)||(v.pedido||'').startsWith(fm)).length:null;
   document.getElementById('metrics').innerHTML=`
     <div class="mc"><div class="mc-l">Viajes totales</div><div class="mc-v" style="color:#185FA5">${total}</div></div>
+    ${mesCnt!==null?`<div class="mc" style="border-color:#1a5fa8;background:#eef4fc"><div class="mc-l">🚛 Camiones ${fmtMes(fm)}</div><div class="mc-v" style="color:#185FA5">${mesCnt}</div></div>`:''}
     <div class="mc"><div class="mc-l">Cobrados</div><div class="mc-v" style="color:#3B6D11">${cob}</div></div>
     <div class="mc"><div class="mc-l">Pend. cobro</div><div class="mc-v" style="color:#B57200">${pend}</div></div>
     <div class="mc"><div class="mc-l">Sin factura</div><div class="mc-v" style="color:#A32D2D">${sf}</div></div>
@@ -769,7 +778,7 @@ function rViajes(){
     const tPalets=rows.reduce((s,v)=>s+(parseInt(v.palets)||0),0);
     const tComision=tPalets*4;
     document.getElementById('vtfoot').innerHTML=`<tr class="totals-row">
-      <td colspan="11" style="text-align:right;font-size:11px;color:#6b6b68">TOTALES:</td>
+      <td colspan="11" style="text-align:right;font-size:11px;color:#6b6b68">TOTAL <strong style="color:#185FA5;font-size:14px">${rows.length}</strong> camión${rows.length!==1?'es':''}</td>
       <td style="text-align:center">${tPalets}</td>
       <td style="text-align:right;font-weight:600;color:#185FA5">${tComision.toLocaleString('es-ES')} €</td>
       <td colspan="3"></td>
