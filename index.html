@@ -225,6 +225,7 @@ tr:hover td{background:#fafaf9}
 
 <div class="main">
   <div id="metrics" class="metrics"></div>
+  <div id="monthly-metrics" style="margin-bottom:20px"></div>
 
   <!-- VIAJES -->
   <div class="page on" id="pg-viajes">
@@ -724,6 +725,54 @@ function rMetrics(){
   el.textContent=alCnt>0?alCnt:'';el.style.display=alCnt>0?'':'none';
   const bel=document.getElementById('bacnt');
   if(bel){bel.textContent=alCnt>0?alCnt:'';bel.style.display=alCnt>0?'':'none';}
+
+  // ── Resumen mensual de palets ──────────────────────────────────────────────
+  const mesesMap={};
+  DB.viajes.forEach(v=>{
+    const ym=(v.previsto||v.pedido||'').slice(0,7);
+    if(!ym)return;
+    if(!mesesMap[ym])mesesMap[ym]={viajes:0,palets:0};
+    mesesMap[ym].viajes++;
+    mesesMap[ym].palets+=parseInt(v.palets)||0;
+  });
+  const mesesOrden=Object.keys(mesesMap).sort((a,b)=>b.localeCompare(a));
+  const mmEl=document.getElementById('monthly-metrics');
+  if(mmEl&&mesesOrden.length){
+    const filas=mesesOrden.map(ym=>{
+      const{viajes:nv,palets:np}=mesesMap[ym];
+      const com=np*4;
+      const esFm=fm&&fm===ym;
+      return `<tr style="${esFm?'background:#eef4fc;font-weight:600;':''}">
+        <td style="padding:7px 12px;border-bottom:1px solid #f0efed;font-weight:600;color:#185FA5;white-space:nowrap">${fmtMes(ym)}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0efed;text-align:center">${nv} viaje${nv!==1?'s':''}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0efed;text-align:center;font-weight:600">${np} palets</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0efed;text-align:right;color:#185FA5;font-weight:600">${com.toLocaleString('es-ES')} €</td>
+      </tr>`;
+    }).join('');
+    const totPal=mesesOrden.reduce((s,ym)=>s+mesesMap[ym].palets,0);
+    const totCom=totPal*4;
+    mmEl.innerHTML=`
+      <div style="background:#fff;border:1px solid #e5e5e3;border-radius:10px;overflow:hidden">
+        <div style="padding:10px 14px;background:#fafaf9;border-bottom:1px solid #e5e5e3;font-size:11px;font-weight:700;color:#6b6b68;text-transform:uppercase;letter-spacing:.4px">
+          📅 Resumen mensual de palets
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="padding:7px 12px;background:#fafaf9;color:#6b6b68;font-size:11px;font-weight:500;text-align:left;border-bottom:1px solid #e5e5e3">Mes</th>
+            <th style="padding:7px 12px;background:#fafaf9;color:#6b6b68;font-size:11px;font-weight:500;text-align:center;border-bottom:1px solid #e5e5e3">Viajes</th>
+            <th style="padding:7px 12px;background:#fafaf9;color:#6b6b68;font-size:11px;font-weight:500;text-align:center;border-bottom:1px solid #e5e5e3">Palets</th>
+            <th style="padding:7px 12px;background:#fafaf9;color:#6b6b68;font-size:11px;font-weight:500;text-align:right;border-bottom:1px solid #e5e5e3">Comisión</th>
+          </tr></thead>
+          <tbody>${filas}</tbody>
+          <tfoot><tr style="background:#fafaf9;font-weight:700">
+            <td style="padding:8px 12px;border-top:2px solid #e5e5e3">TOTAL</td>
+            <td style="padding:8px 12px;border-top:2px solid #e5e5e3;text-align:center">${DB.viajes.length} viajes</td>
+            <td style="padding:8px 12px;border-top:2px solid #e5e5e3;text-align:center;color:#185FA5">${totPal} palets</td>
+            <td style="padding:8px 12px;border-top:2px solid #e5e5e3;text-align:right;color:#185FA5">${totCom.toLocaleString('es-ES')} €</td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  }
 }
 
 // ─── VIAJES ──────────────────────────────────────────────────────────────────
