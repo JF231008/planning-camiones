@@ -729,7 +729,7 @@ function rMetrics(){
   // ── Resumen mensual de palets ──────────────────────────────────────────────
   const mesesMap={};
   DB.viajes.forEach(v=>{
-    const ym=(v.previsto||v.pedido||'').slice(0,7);
+    const ym=(v.previsto||v.pedido||'').slice(0,7); // previsto manda; pedido solo si no hay previsto
     if(!ym)return;
     if(!mesesMap[ym])mesesMap[ym]={viajes:0,palets:0};
     mesesMap[ym].viajes++;
@@ -791,7 +791,8 @@ function rViajes(){
   let rows=DB.viajes.filter(v=>{
     if(q&&!JSON.stringify(v).toLowerCase().includes(q))return false;
     if(fc&&cst(v)!==fc)return false;
-    if(fm&&!(v.previsto||'').startsWith(fm)&&!(v.pedido||'').startsWith(fm))return false;
+    const vMes=(v.previsto||v.pedido||'').slice(0,7);
+    if(fm&&vMes!==fm)return false;
     return true;
   }).sort((a,b)=>{
     // Prioridad: sin factura → pendiente → cobrado
