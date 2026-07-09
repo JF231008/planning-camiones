@@ -514,9 +514,7 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const lista=[...DB.viajes].sort((a,b)=>a.id-b.id).filter(isSolan);
-  const pos=lista.findIndex(x=>x.id===v.id);
-  return pos>=0?'ELIT-'+(40+pos+1):null;
+  return 'ELIT-'+v.id;
 }
 
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
