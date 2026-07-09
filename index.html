@@ -502,6 +502,23 @@ function genId(v){
   return cli+'-'+fecha+'-'+num;
 }
 
+function isSolan(v){
+  try{
+    const p=String(v.producto||'');
+    if(p.trim().startsWith('[')){
+      return JSON.parse(p).some(l=>(l.p||'').toLowerCase().includes('solan'));
+    }
+    return p.toLowerCase().includes('solan');
+  }catch{return false;}
+}
+
+function elitCode(v){
+  if(!isSolan(v))return null;
+  const lista=[...DB.viajes].sort((a,b)=>a.id-b.id).filter(isSolan);
+  const pos=lista.findIndex(x=>x.id===v.id);
+  return pos>=0?'ELIT-'+(40+pos+1):null;
+}
+
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
 
 function bdg(s,fn,id){
@@ -580,7 +597,7 @@ function sendWhatsApp(id){
   const partes=[
     '🚛 *PEDIDO - Planning Camiones*',
     '━━━━━━━━━━━━━━━━━━━━━',
-    `🆔 *Ref:* ${genId(v)}`,
+    `🆔 *Ref:* ${genId(v)}${elitCode(v)?' · '+elitCode(v):''}`,
     '',
     `🏪 *CLIENTE:* ${v.destino||'—'}`,
     `🏭 *PROVEEDOR:* ${v.origen||'—'}`,
@@ -807,7 +824,10 @@ function rViajes(){
   document.getElementById('vtbody').innerHTML=rows.length?rows.map(v=>{
     const proc=getProceso(v);
     return `<tr>
-      <td style="font-weight:600;color:#185FA5;font-size:11px;white-space:nowrap">${genId(v)}</td>
+      <td style="white-space:nowrap">
+        <div style="font-weight:600;color:#185FA5;font-size:11px">${genId(v)}</div>
+        ${elitCode(v)?`<div style="font-weight:700;color:#6d28d9;font-size:11px;background:#ede9fe;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">${elitCode(v)}</div>`:''}
+      </td>
       <td><span class="pbdg pbdg-${proc.cls}">${proc.label}</span></td>
       <td>${fd(v.previsto)}</td>
       <td>${fd(v.carga)}</td>
@@ -850,7 +870,7 @@ function rViajes(){
     return `<div class="vcard">
       <div class="vcard-head">
         <div>
-          <div style="font-size:10px;font-weight:700;color:#185FA5;letter-spacing:.3px;margin-bottom:2px">${genId(v)}</div>
+          <div style="font-size:10px;font-weight:700;color:#185FA5;letter-spacing:.3px;margin-bottom:2px">${genId(v)}${elitCode(v)?` <span style="color:#6d28d9;background:#ede9fe;padding:1px 5px;border-radius:4px;font-size:10px">${elitCode(v)}</span>`:''}</div>
           <div class="vcard-cliente">${v.destino||'—'}</div>
           <span class="pbdg pbdg-${proc.cls}" style="margin-top:4px;display:inline-flex">${proc.label}</span>
         </div>
