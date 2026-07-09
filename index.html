@@ -515,9 +515,10 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const lista=[...DB.viajes].sort((a,b)=>a.id-b.id).filter(isSolan);
-  const pos=lista.findIndex(x=>x.id===v.id);
-  return pos>=0?'ELIT-'+(pos+1):null;
+  const sorted=[...DB.viajes].sort((a,b)=>a.id-b.id);
+  const num=sorted.findIndex(x=>x.id===v.id)+1;
+  if(num<41)return null;
+  return 'ELIT-'+num;
 }
 
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
