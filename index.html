@@ -1446,13 +1446,15 @@ function rHistorialCam(){
     return true;
   }).sort((a,b)=>(b.fecha||'')>(a.fecha||'')?1:-1);
   document.getElementById('shisttable').innerHTML=rows.length?`<table><thead><tr>
-    <th>Fecha</th><th>Producto</th><th>Tipo</th><th style="text-align:center">Cantidad</th><th>Referencia</th><th>Notas</th><th></th>
+    <th>Fecha</th><th>Producto</th><th>Tipo</th><th>Proveedor / Cliente</th><th style="text-align:center">Cantidad</th><th>Ref. camión</th><th>Notas</th><th></th>
   </tr></thead><tbody>${rows.map(m=>{
     const p=DB.stock_cam.find(s=>s.id===m.stock_id);
+    const contact=m.tipo==='entrada'?(m.proveedor||'—'):(m.cliente||'—');
     return `<tr>
       <td>${fd(m.fecha)}</td>
       <td>${p?p.producto:'—'}</td>
       <td><span class="pill" style="${m.tipo==='entrada'?'background:#eaf3de;color:#27500a':'background:#fcebeb;color:#791f1f'}">${m.tipo==='entrada'?'⬆ Entrada':'⬇ Salida'}</span></td>
+      <td>${contact}</td>
       <td style="text-align:center;font-weight:600">${m.cantidad}</td>
       <td>${m.ref||'—'}</td>
       <td>${m.notas||'—'}</td>
@@ -1502,19 +1504,37 @@ async function delProdCam(id){
   hideLoading();closeModal();rStockCam();
 }
 let _movCamTipo='entrada',_movCamStockId=null;
+function updateMovCamFields(){
+  const tipo=document.getElementById('i-mtipo')?.value||'entrada';
+  const isE=tipo==='entrada';
+  document.getElementById('mtitle').textContent=isE?'⬆ Registrar entrada':'⬇ Registrar salida';
+  const lbl=document.getElementById('i-contact-label');
+  const inp=document.getElementById('i-mcontact');
+  if(lbl)lbl.textContent=isE?'Proveedor':'Cliente';
+  if(inp){inp.placeholder=isE?'Nombre del proveedor':'Nombre del cliente';inp.setAttribute('list',isE?'mov-prov-list':'mov-cli-list');}
+}
 function openMovCam(tipo,stockId){
   _movCamTipo=tipo||'entrada';_movCamStockId=stockId||null;
-  document.getElementById('mtitle').textContent=tipo==='salida'?'⬇ Registrar salida':'⬆ Registrar entrada';
+  const isE=_movCamTipo==='entrada';
+  document.getElementById('mtitle').textContent=isE?'⬆ Registrar entrada':'⬇ Registrar salida';
   const prodOpts=DB.stock_cam.map(s=>`<option value="${s.id}"${stockId==s.id?' selected':''}>${s.producto}</option>`).join('');
+  const provOpts=DB.contactos.filter(c=>c.tipo==='proveedor').map(c=>`<option value="${c.nombre}">`).join('');
+  const cliOpts=DB.contactos.filter(c=>c.tipo==='cliente').map(c=>`<option value="${c.nombre}">`).join('');
   document.getElementById('mform').innerHTML=`<div class="fg">
     <div class="fl fgf"><label>Producto</label><select id="i-mstockid">${prodOpts}</select></div>
-    <div class="fl"><label>Tipo</label><select id="i-mtipo">
-      <option value="entrada"${_movCamTipo==='entrada'?' selected':''}>⬆ Entrada</option>
-      <option value="salida"${_movCamTipo==='salida'?' selected':''}>⬇ Salida</option>
+    <div class="fl"><label>Tipo</label><select id="i-mtipo" onchange="updateMovCamFields()">
+      <option value="entrada"${isE?' selected':''}>⬆ Entrada</option>
+      <option value="salida"${!isE?' selected':''}>⬇ Salida</option>
     </select></div>
     <div class="fl"><label>Cantidad (palets)</label><input type="number" id="i-mcant" value="1" min="1"></div>
     <div class="fl"><label>Fecha</label><input type="date" id="i-mfecha" value="${today()}"></div>
-    <div class="fl fgf"><label>Referencia (opcional)</label><input type="text" id="i-mref" placeholder="Nº albarán, viaje..."></div>
+    <div class="fl fgf">
+      <label id="i-contact-label">${isE?'Proveedor':'Cliente'}</label>
+      <input type="text" id="i-mcontact" placeholder="${isE?'Nombre del proveedor':'Nombre del cliente'}" list="${isE?'mov-prov-list':'mov-cli-list'}">
+      <datalist id="mov-prov-list">${provOpts}</datalist>
+      <datalist id="mov-cli-list">${cliOpts}</datalist>
+    </div>
+    <div class="fl fgf"><label>Ref. camión</label><input type="text" id="i-mref" placeholder="Ej. DI-0113-38"></div>
     <div class="fl fgf"><label>Notas</label><input type="text" id="i-mnotas" placeholder="Observaciones"></div>
   </div>`;
   curModal='mov_cam';
@@ -1529,7 +1549,8 @@ async function saveMovCam(){
   const cant=parseInt(document.getElementById('i-mcant').value)||0;
   if(!stockId||cant<=0){alert('Selecciona producto y cantidad válida');return;}
   showLoading('Guardando...');
-  const obj={stock_id:stockId,tipo,cantidad:cant,fecha:document.getElementById('i-mfecha').value,ref:document.getElementById('i-mref').value.trim(),notas:document.getElementById('i-mnotas').value.trim()};
+  const contact=(document.getElementById('i-mcontact')?.value||'').trim();
+  const obj={stock_id:stockId,tipo,cantidad:cant,fecha:document.getElementById('i-mfecha').value,proveedor:tipo==='entrada'?contact:'',cliente:tipo==='salida'?contact:'',ref:document.getElementById('i-mref').value.trim(),notas:document.getElementById('i-mnotas').value.trim()};
   const res=await sbInsert('movimientos_camiones',obj).catch(()=>null);
   if(res&&res.id)obj.id=res.id;else obj.id=DB.nid.mo;
   DB.mov_cam.push(obj);DB.nid.mo=Math.max(DB.nid.mo,(obj.id||0)+1);
