@@ -457,8 +457,8 @@ let DB = {
 };
 
 // ─── SUPABASE ────────────────────────────────────────────────────────────────
-const SB_URL = 'https://ylayhvnrusawegkprijc.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYXlodm5ydXNhd2Vna3ByaWpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDU1MzksImV4cCI6MjA5NDE4MTUzOX0.M5YON4C6t8vL48zskq3xJ-eCTgB5iz-6Q-ngEupmkTk';
+const SB_URL = 'https://guuwsmykznzxeaplpavs.supabase.co';
+const SB_KEY = 'sb_publishable_nl_2PnbAD_LJhvMX0Gl-Iw_2kGeJVNc';
 const SB_HDR = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
 
 async function sbGet(tabla){
@@ -542,8 +542,12 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const solanViajes=[...DB.viajes].sort((a,b)=>a.id-b.id).filter(x=>x.id>=41).filter(isSolan);
-  const pos=solanViajes.findIndex(x=>x.id===v.id);
+  const fecha=(v.previsto||v.pedido||'');
+  if(fecha<'2026-07')return null;
+  const solanJulio=[...DB.viajes].sort((a,b)=>a.id-b.id)
+    .filter(x=>(x.previsto||x.pedido||'')>='2026-07')
+    .filter(isSolan);
+  const pos=solanJulio.findIndex(x=>x.id===v.id);
   return pos>=0?'ELIT-'+(pos+1):null;
 }
 
@@ -1480,7 +1484,7 @@ async function saveProdCam(){
   showLoading('Guardando...');
   if(_editProdCamId){
     obj.id=_editProdCamId;
-    await sbUpdate('stock_camiones',_editProdCamId,obj);
+    await sbUpdate('stock_camiones',_editProdCamId,obj).catch(()=>{});
     const i=DB.stock_cam.findIndex(x=>x.id===_editProdCamId);if(i>=0)DB.stock_cam[i]={...DB.stock_cam[i],...obj};
   }else{
     const res=await sbInsert('stock_camiones',obj).catch(()=>null);
