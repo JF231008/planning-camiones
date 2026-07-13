@@ -205,6 +205,7 @@ tr:hover td{background:#fafaf9}
       <button class="nav-btn" onclick="go('matriculas')">🚚 Matrículas</button>
       <button class="nav-btn" onclick="go('contactos')">👥 Contactos</button>
       <button class="nav-btn" onclick="go('alertas')">🔔 Alertas <span class="cnt" id="acnt" style="display:none"></span></button>
+      <button class="nav-btn" onclick="go('stock')">📊 Stock</button>
     </nav>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -220,6 +221,7 @@ tr:hover td{background:#fafaf9}
     <button class="bnav-btn" id="bn-matriculas" onclick="go('matriculas')"><span class="bico">🚚</span><span class="blbl">Vehículos</span></button>
     <button class="bnav-btn" id="bn-contactos" onclick="go('contactos')"><span class="bico">👥</span><span class="blbl">Contactos</span></button>
     <button class="bnav-btn" id="bn-alertas" onclick="go('alertas')"><span class="bnav-ico-wrap"><span class="bico">🔔</span><span class="bcnt" id="bacnt" style="display:none"></span></span><span class="blbl">Alertas</span></button>
+    <button class="bnav-btn" id="bn-stock" onclick="go('stock')"><span class="bico">📊</span><span class="blbl">Stock</span></button>
   </div>
 </nav>
 
@@ -333,6 +335,23 @@ tr:hover td{background:#fafaf9}
   <div class="page" id="pg-alertas">
     <div id="alist"></div>
   </div>
+
+  <!-- STOCK -->
+  <div class="page" id="pg-stock">
+    <div class="toolbar">
+      <div style="display:flex;gap:4px">
+        <button class="btn" id="stab-p" onclick="showStockTab('p')">📦 Productos</button>
+        <button class="btn" id="stab-h" onclick="showStockTab('h')">📋 Historial</button>
+      </div>
+      <input type="text" id="ssearch" placeholder="🔍 Buscar..." oninput="rStockCam()">
+      <select id="sfprod" onchange="rHistorialCam()" style="display:none"><option value="">Todos los productos</option></select>
+      <select id="sftipo" onchange="rHistorialCam()" style="display:none"><option value="">Todo</option><option value="entrada">⬆ Entradas</option><option value="salida">⬇ Salidas</option></select>
+      <button class="btn p" id="sbtn-newprod" onclick="openProdCam()">＋ Nuevo producto</button>
+      <button class="btn ok" id="sbtn-newmov" onclick="openMovCam()" style="display:none">＋ Movimiento</button>
+    </div>
+    <div id="scards" class="cards"></div>
+    <div id="shisttable" class="tw" style="display:none"></div>
+  </div>
 </div>
 
 <!-- MODAL GENERAL -->
@@ -428,7 +447,13 @@ let DB = {
     {id:6,nombre:'BEBYMAD S.L.',tipo:'proveedor',telefono:'91 555 66 77',email:'bebymad@mail.es',direccion:'Madrid',notas:''},
     {id:7,nombre:'OCASION INVERSORA,SL',tipo:'proveedor',telefono:'',email:'',direccion:'',notas:''},
   ],
-  nid:{v:13,f:6,m:4,c:8}
+  stock_cam:[
+    {id:1,producto:'Agua Solán de Cabras 1,5L',cantidad:0,unidad:'palets',notas:''},
+    {id:2,producto:'Agua Solán de Cabras 5L',cantidad:0,unidad:'palets',notas:''},
+    {id:3,producto:'Agua Font Vella',cantidad:0,unidad:'palets',notas:''},
+  ],
+  mov_cam:[],
+  nid:{v:13,f:6,m:4,c:8,s:4,mo:1}
 };
 
 // ─── SUPABASE ────────────────────────────────────────────────────────────────
@@ -469,8 +494,10 @@ function hideLoading(){const el=document.getElementById('sb-bar');if(el)el.style
 async function loadAll(){
   showLoading('☁️ Cargando datos...');
   try{
-    const [v,f,m,c]=await Promise.all([sbGet('viajes'),sbGet('facturas'),sbGet('matriculas'),sbGet('contactos')]);
+    const [v,f,m,c,stk,mov]=await Promise.all([sbGet('viajes'),sbGet('facturas'),sbGet('matriculas'),sbGet('contactos'),sbGet('stock_camiones').catch(()=>[]),sbGet('movimientos_camiones').catch(()=>[])]);
     DB.viajes=v;DB.facturas=f;DB.matriculas=m;DB.contactos=c;
+    if(stk&&stk.length){DB.stock_cam=stk;DB.nid.s=Math.max(...stk.map(x=>x.id))+1;}
+    if(mov&&mov.length){DB.mov_cam=mov;DB.nid.mo=Math.max(...mov.map(x=>x.id))+1;}
     hideLoading();rViajes();rAlertas();
   }catch(e){hideLoading();alert('Error de conexión: '+e.message);}
 }
@@ -515,11 +542,8 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const sorted=[...DB.viajes].sort((a,b)=>a.id-b.id);
-  const num=sorted.findIndex(x=>x.id===v.id)+1;
-  if(num<41)return null;
-  const solanDesde41=sorted.filter((_,i)=>i>=40).filter(isSolan);
-  const pos=solanDesde41.findIndex(x=>x.id===v.id);
+  const solanViajes=[...DB.viajes].sort((a,b)=>a.id-b.id).filter(x=>x.id>=41).filter(isSolan);
+  const pos=solanViajes.findIndex(x=>x.id===v.id);
   return pos>=0?'ELIT-'+(pos+1):null;
 }
 
@@ -709,11 +733,11 @@ function go(page){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+page).classList.add('on');
-  const pages=['viajes','facturas','matriculas','contactos','alertas'];
-  document.querySelectorAll('.nav-btn')[pages.indexOf(page)].classList.add('on');
+  const pages=['viajes','facturas','matriculas','contactos','alertas','stock'];
+  const idx=pages.indexOf(page);if(idx>=0)document.querySelectorAll('.nav-btn')[idx]?.classList.add('on');
   const bn=document.getElementById('bn-'+page);
   if(bn) bn.classList.add('on');
-  ({viajes:rViajes,facturas:rFacturas,matriculas:rMatriculas,contactos:rContactos,alertas:rAlertas})[page]?.();
+  ({viajes:rViajes,facturas:rFacturas,matriculas:rMatriculas,contactos:rContactos,alertas:rAlertas,stock:rStockCam})[page]?.();
 }
 
 // ─── MÉTRICAS ─────────────────────────────────────────────────────────────────
@@ -1361,6 +1385,163 @@ function exportFacturasExcel(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download='facturas_'+today()+'.csv';a.click();
+}
+
+// ─── STOCK ────────────────────────────────────────────────────────────────────
+let _stockTab='p';
+function showStockTab(tab){
+  _stockTab=tab;
+  const isP=tab==='p';
+  document.getElementById('stab-p').className='btn'+(isP?' p':'');
+  document.getElementById('stab-h').className='btn'+(!isP?' p':'');
+  document.getElementById('scards').style.display=isP?'':'none';
+  document.getElementById('shisttable').style.display=isP?'none':'';
+  document.getElementById('sfprod').style.display=isP?'none':'';
+  document.getElementById('sftipo').style.display=isP?'none':'';
+  document.getElementById('sbtn-newprod').style.display=isP?'':'none';
+  document.getElementById('sbtn-newmov').style.display=isP?'none':'';
+  document.getElementById('ssearch').oninput=isP?()=>rStockCam():()=>rHistorialCam();
+  if(isP)rStockCam();else rHistorialCam();
+}
+function rStockCam(){
+  if(_stockTab!=='p')return;
+  const q=(document.getElementById('ssearch')?.value||'').toLowerCase();
+  const rows=DB.stock_cam.filter(s=>!q||s.producto.toLowerCase().includes(q));
+  document.getElementById('scards').innerHTML=rows.map(s=>{
+    const low=s.cantidad<5;
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div class="card-name" style="flex:1;margin-right:8px">${s.producto}</div>
+        <div style="font-size:22px;font-weight:700;color:${low?'#c0392b':'#185FA5'};white-space:nowrap">${s.cantidad} <span style="font-size:11px;font-weight:400;color:#6b6b68">${s.unidad||'palets'}</span></div>
+      </div>
+      ${low?`<div style="font-size:11px;color:#c0392b;font-weight:500;margin-bottom:6px">⚠️ Stock bajo</div>`:''}
+      ${s.notas?`<div class="card-row">${s.notas}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn sm ok" onclick="openMovCam('entrada',${s.id})">⬆ Entrada</button>
+        <button class="btn sm danger" onclick="openMovCam('salida',${s.id})">⬇ Salida</button>
+        <button class="btn sm" onclick="openProdCam(${s.id})">✏️ Editar</button>
+      </div>
+    </div>`;
+  }).join('')+`<div class="card card-dashed" onclick="openProdCam()">＋ Nuevo producto</div>`;
+}
+function rHistorialCam(){
+  if(_stockTab!=='h')return;
+  const q=(document.getElementById('ssearch')?.value||'').toLowerCase();
+  const fp=document.getElementById('sfprod');
+  const fpt=fp?fp.value:'';
+  const ft=document.getElementById('sftipo')?.value||'';
+  if(fp){
+    const pids=new Set(DB.mov_cam.map(m=>m.stock_id));
+    const prods=DB.stock_cam.filter(s=>pids.has(s.id)).sort((a,b)=>a.producto.localeCompare(b.producto));
+    fp.innerHTML='<option value="">Todos los productos</option>'+prods.map(s=>`<option value="${s.id}"${fpt==s.id?' selected':''}>${s.producto}</option>`).join('');
+  }
+  const rows=DB.mov_cam.filter(m=>{
+    if(fpt&&String(m.stock_id)!==String(fpt))return false;
+    if(ft&&m.tipo!==ft)return false;
+    if(q){const p=DB.stock_cam.find(s=>s.id===m.stock_id);return[(p?p.producto:''),m.ref,m.notas].some(v=>(v||'').toLowerCase().includes(q));}
+    return true;
+  }).sort((a,b)=>(b.fecha||'')>(a.fecha||'')?1:-1);
+  document.getElementById('shisttable').innerHTML=rows.length?`<table><thead><tr>
+    <th>Fecha</th><th>Producto</th><th>Tipo</th><th style="text-align:center">Cantidad</th><th>Referencia</th><th>Notas</th><th></th>
+  </tr></thead><tbody>${rows.map(m=>{
+    const p=DB.stock_cam.find(s=>s.id===m.stock_id);
+    return `<tr>
+      <td>${fd(m.fecha)}</td>
+      <td>${p?p.producto:'—'}</td>
+      <td><span class="pill" style="${m.tipo==='entrada'?'background:#eaf3de;color:#27500a':'background:#fcebeb;color:#791f1f'}">${m.tipo==='entrada'?'⬆ Entrada':'⬇ Salida'}</span></td>
+      <td style="text-align:center;font-weight:600">${m.cantidad}</td>
+      <td>${m.ref||'—'}</td>
+      <td>${m.notas||'—'}</td>
+      <td><button class="btn sm danger" onclick="delMovCam(${m.id})">🗑</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`:`<div class="empty">Sin movimientos registrados</div>`;
+}
+let _editProdCamId=null;
+function openProdCam(id){
+  _editProdCamId=id||null;
+  const s=id?DB.stock_cam.find(x=>x.id===id):null;
+  document.getElementById('mtitle').textContent=s?'Editar producto':'Nuevo producto';
+  document.getElementById('mform').innerHTML=`<div class="fg">
+    <div class="fl fgf"><label>Nombre del producto</label><input type="text" id="i-sprod" value="${s?s.producto:''}" placeholder="Ej. Agua Solán 1,5L"></div>
+    <div class="fl"><label>Cantidad actual</label><input type="number" id="i-scant" value="${s?s.cantidad:0}" min="0"></div>
+    <div class="fl"><label>Unidad</label><input type="text" id="i-sunit" value="${s?s.unidad||'palets':'palets'}" placeholder="palets"></div>
+    <div class="fl fgf"><label>Notas</label><input type="text" id="i-snotas" value="${s?s.notas||'':''}" placeholder="Observaciones"></div>
+  </div>`;
+  curModal='prod_cam';
+  document.getElementById('mbt').innerHTML=`
+    ${id?`<button class="btn danger" onclick="delProdCam(${id})">🗑 Eliminar</button><span style="flex:1"></span>`:''}
+    <button class="btn" onclick="closeModal()">Cancelar</button>
+    <button class="btn p" onclick="saveProdCam()">✔ Guardar</button>`;
+  document.getElementById('mov').style.display='flex';
+}
+async function saveProdCam(){
+  const obj={producto:document.getElementById('i-sprod').value.trim(),cantidad:parseInt(document.getElementById('i-scant').value)||0,unidad:document.getElementById('i-sunit').value.trim()||'palets',notas:document.getElementById('i-snotas').value.trim()};
+  if(!obj.producto){alert('El nombre del producto es obligatorio');return;}
+  showLoading('Guardando...');
+  if(_editProdCamId){
+    obj.id=_editProdCamId;
+    await sbUpdate('stock_camiones',_editProdCamId,obj);
+    const i=DB.stock_cam.findIndex(x=>x.id===_editProdCamId);if(i>=0)DB.stock_cam[i]={...DB.stock_cam[i],...obj};
+  }else{
+    const res=await sbInsert('stock_camiones',obj).catch(()=>null);
+    if(res&&res.id)obj.id=res.id;else obj.id=DB.nid.s;
+    DB.stock_cam.push(obj);DB.nid.s=Math.max(DB.nid.s,(obj.id||0)+1);
+  }
+  hideLoading();closeModal();rStockCam();
+}
+async function delProdCam(id){
+  if(!confirm('¿Eliminar este producto?'))return;
+  showLoading('Eliminando...');
+  await sbDelete('stock_camiones',id).catch(()=>{});
+  DB.stock_cam=DB.stock_cam.filter(x=>x.id!==id);
+  DB.mov_cam=DB.mov_cam.filter(x=>x.stock_id!==id);
+  hideLoading();closeModal();rStockCam();
+}
+let _movCamTipo='entrada',_movCamStockId=null;
+function openMovCam(tipo,stockId){
+  _movCamTipo=tipo||'entrada';_movCamStockId=stockId||null;
+  document.getElementById('mtitle').textContent=tipo==='salida'?'⬇ Registrar salida':'⬆ Registrar entrada';
+  const prodOpts=DB.stock_cam.map(s=>`<option value="${s.id}"${stockId==s.id?' selected':''}>${s.producto}</option>`).join('');
+  document.getElementById('mform').innerHTML=`<div class="fg">
+    <div class="fl fgf"><label>Producto</label><select id="i-mstockid">${prodOpts}</select></div>
+    <div class="fl"><label>Tipo</label><select id="i-mtipo">
+      <option value="entrada"${_movCamTipo==='entrada'?' selected':''}>⬆ Entrada</option>
+      <option value="salida"${_movCamTipo==='salida'?' selected':''}>⬇ Salida</option>
+    </select></div>
+    <div class="fl"><label>Cantidad (palets)</label><input type="number" id="i-mcant" value="1" min="1"></div>
+    <div class="fl"><label>Fecha</label><input type="date" id="i-mfecha" value="${today()}"></div>
+    <div class="fl fgf"><label>Referencia (opcional)</label><input type="text" id="i-mref" placeholder="Nº albarán, viaje..."></div>
+    <div class="fl fgf"><label>Notas</label><input type="text" id="i-mnotas" placeholder="Observaciones"></div>
+  </div>`;
+  curModal='mov_cam';
+  document.getElementById('mbt').innerHTML=`
+    <button class="btn" onclick="closeModal()">Cancelar</button>
+    <button class="btn p" onclick="saveMovCam()">✔ Guardar</button>`;
+  document.getElementById('mov').style.display='flex';
+}
+async function saveMovCam(){
+  const stockId=parseInt(document.getElementById('i-mstockid').value);
+  const tipo=document.getElementById('i-mtipo').value;
+  const cant=parseInt(document.getElementById('i-mcant').value)||0;
+  if(!stockId||cant<=0){alert('Selecciona producto y cantidad válida');return;}
+  showLoading('Guardando...');
+  const obj={stock_id:stockId,tipo,cantidad:cant,fecha:document.getElementById('i-mfecha').value,ref:document.getElementById('i-mref').value.trim(),notas:document.getElementById('i-mnotas').value.trim()};
+  const res=await sbInsert('movimientos_camiones',obj).catch(()=>null);
+  if(res&&res.id)obj.id=res.id;else obj.id=DB.nid.mo;
+  DB.mov_cam.push(obj);DB.nid.mo=Math.max(DB.nid.mo,(obj.id||0)+1);
+  const si=DB.stock_cam.findIndex(x=>x.id===stockId);
+  if(si>=0){
+    DB.stock_cam[si].cantidad+=tipo==='entrada'?cant:-cant;
+    await sbUpdate('stock_camiones',stockId,{cantidad:DB.stock_cam[si].cantidad}).catch(()=>{});
+  }
+  hideLoading();closeModal();rStockCam();
+}
+async function delMovCam(id){
+  if(!confirm('¿Eliminar este movimiento?\nNota: el stock no se reajusta automáticamente.'))return;
+  showLoading('Eliminando...');
+  await sbDelete('movimientos_camiones',id).catch(()=>{});
+  DB.mov_cam=DB.mov_cam.filter(x=>x.id!==id);
+  hideLoading();rHistorialCam();
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeExp();closeSettings()}});
