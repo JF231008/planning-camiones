@@ -544,12 +544,9 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const fecha=(v.previsto||v.pedido||'');
-  if(fecha<'2026-07')return null;
-  const solanJulio=[...DB.viajes].sort((a,b)=>a.id-b.id)
-    .filter(x=>(x.previsto||x.pedido||'')>='2026-07')
-    .filter(isSolan);
-  const pos=solanJulio.findIndex(x=>x.id===v.id);
+  const sorted=[...DB.viajes].sort((a,b)=>a.id-b.id);
+  const solanDesde41=sorted.filter((_,i)=>i>=40).filter(isSolan);
+  const pos=solanDesde41.findIndex(x=>x.id===v.id);
   return pos>=0?'ELIT-'+(pos+1):null;
 }
 
