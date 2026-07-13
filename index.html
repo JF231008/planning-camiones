@@ -544,13 +544,12 @@ function isSolan(v){
 
 function elitCode(v){
   if(!isSolan(v))return null;
-  const fecha=(v.previsto||v.pedido||'');
-  if(fecha<'2026-07')return null;
-  const solanJulio=[...DB.viajes].sort((a,b)=>a.id-b.id)
-    .filter(x=>(x.previsto||x.pedido||'')>='2026-07')
-    .filter(isSolan);
-  const pos=solanJulio.findIndex(x=>x.id===v.id);
-  return pos>=0?'ELIT-'+(pos+1):null;
+  const sorted=[...DB.viajes].sort((a,b)=>a.id-b.id);
+  const idx=sorted.findIndex(x=>x.id===v.id);
+  if(idx<39)return null; // posiciones 1-39 sin ELIT
+  const solanDesde40=sorted.filter((_,i)=>i>=39).filter(isSolan);
+  const pos=solanDesde40.findIndex(x=>x.id===v.id);
+  return pos>=0?'ELIT-'+(pos+4):null; // ELIT-1,2,3 ya usados antes del app
 }
 
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
