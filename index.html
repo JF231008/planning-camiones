@@ -1108,16 +1108,9 @@ function rContactos(){
     `<div class="card card-dashed" onclick="openContacto()">＋ Nuevo contacto</div>`;
 }
 
-async function guardarContactoCam(pdataEnc){
+function guardarContactoCam(pdataEnc){
   const pd=JSON.parse(decodeURIComponent(pdataEnc));
-  showLoading('Guardando...');
-  const obj={nombre:pd.nombre,tipo:pd.tipo,telefono:'',email:'',direccion:'',notas:''};
-  try{
-    const res=await sbInsert('contactos',obj);
-    if(res&&res.id)obj.id=res.id;else obj.id=DB.nid.c;
-  }catch{obj.id=DB.nid.c;}
-  DB.contactos.push(obj);DB.nid.c=Math.max(DB.nid.c,(obj.id||0)+1);
-  hideLoading();rContactos();
+  openContacto(null,{nombre:pd.nombre,tipo:pd.tipo});
 }
 
 async function importarTodosContactosCam(){
@@ -1315,9 +1308,9 @@ function openMatricula(id=null){
   document.getElementById('mov').style.display='flex';
 }
 
-function openContacto(id=null){
+function openContacto(id=null,prefill=null){
   curModal='c';curId=id;
-  const c=id?DB.contactos.find(x=>x.id===id):{};
+  const c=id?DB.contactos.find(x=>x.id===id):(prefill||{});
   document.getElementById('mtitle').textContent=id?'✏️ Editar contacto':'＋ Nuevo contacto';
   document.getElementById('mform').innerHTML=`
     <div class="fg">
