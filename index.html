@@ -326,6 +326,8 @@ tr:hover td{background:#fafaf9}
         <option value="cliente">🛒 Clientes</option>
         <option value="proveedor">📦 Proveedores</option>
       </select>
+      <span id="ccount" style="font-size:12px;color:#6b6b68;padding:0 4px"></span>
+      <button class="btn" onclick="importarTodosContactosCam()" style="background:#e8f4fc;border-color:#90c8e8;color:#1565c0">📥 Importar todos</button>
       <button class="btn p" onclick="openContacto()">＋ Nuevo contacto</button>
     </div>
     <div class="cards" id="ccards"></div>
@@ -1032,12 +1034,43 @@ async function delMat(id){if(!confirm('¿Eliminar?'))return;showLoading('Elimina
 function rContactos(){
   const q=(document.getElementById('csearch').value||'').toLowerCase();
   const ft=document.getElementById('cftipo').value;
+
+  // Contactos guardados
   const rows=DB.contactos.filter(c=>{
-    if(q&&!JSON.stringify(c).toLowerCase().includes(q))return false;
     if(ft&&c.tipo!==ft)return false;
+    if(q&&!JSON.stringify(c).toLowerCase().includes(q))return false;
     return true;
   });
-  document.getElementById('ccards').innerHTML=rows.map(c=>{
+
+  // Extraer clientes (destino) y proveedores (origen) únicos de viajes no guardados aún
+  const nombresGuardados=new Set(DB.contactos.map(c=>(c.nombre||'').toLowerCase().trim()));
+  const virtualesMap=new Map();
+  DB.viajes.forEach(v=>{
+    const destino=(v.destino||'').trim();
+    const origen=(v.origen||'').trim();
+    if(destino){
+      const k=destino.toLowerCase();
+      if(!nombresGuardados.has(k)&&(!ft||ft==='cliente')){
+        if(!virtualesMap.has(k))virtualesMap.set(k,{nombre:destino,tipo:'cliente'});
+      }
+    }
+    if(origen){
+      const k=origen.toLowerCase();
+      if(!nombresGuardados.has(k)&&(!ft||ft==='proveedor')){
+        if(!virtualesMap.has(k))virtualesMap.set(k,{nombre:origen,tipo:'proveedor'});
+      }
+    }
+  });
+  const virtuales=Array.from(virtualesMap.values()).filter(v=>{
+    if(q&&!v.nombre.toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+
+  const total=rows.length+virtuales.length;
+  const cc=document.getElementById('ccount');
+  if(cc)cc.textContent=total+' contacto'+(total!==1?'s':'');
+
+  const htmlGuardados=rows.map(c=>{
     const ini=c.nombre.split(/[\s,]+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const nv=DB.viajes.filter(v=>v.destino===c.nombre||v.origen===c.nombre).length;
     return `<div class="card">
@@ -1053,7 +1086,62 @@ function rContactos(){
         <button class="btn sm danger" onclick="delCon(${c.id})">🗑</button>
       </div>
     </div>`;
-  }).join('')+`<div class="card card-dashed" onclick="openContacto()">＋ Nuevo contacto</div>`;
+  });
+
+  const htmlVirtuales=virtuales.map(v=>{
+    const ini=v.nombre.split(/[\s,]+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const nv=DB.viajes.filter(x=>(v.tipo==='cliente'?x.destino:x.origen)===v.nombre).length;
+    const pdata=encodeURIComponent(JSON.stringify({nombre:v.nombre,tipo:v.tipo}));
+    return `<div class="card" style="border-style:dashed;opacity:0.85">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar ${v.tipo==='cliente'?'av-b':'av-g'}" style="opacity:0.6">${ini}</div>
+        <div><div class="card-name">${v.nombre}</div><div class="card-sub">${v.tipo==='cliente'?'🛒 Cliente':'📦 Proveedor'} · ${nv} viaje(s) <span style="color:#b45309;font-size:10px">(no guardado)</span></div></div>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn sm p" onclick="guardarContactoCam('${pdata}')">💾 Guardar contacto</button>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('ccards').innerHTML=
+    [...htmlGuardados,...htmlVirtuales].join('')+
+    `<div class="card card-dashed" onclick="openContacto()">＋ Nuevo contacto</div>`;
+}
+
+async function guardarContactoCam(pdataEnc){
+  const pd=JSON.parse(decodeURIComponent(pdataEnc));
+  showLoading('Guardando...');
+  const obj={nombre:pd.nombre,tipo:pd.tipo,telefono:'',email:'',direccion:'',notas:''};
+  try{
+    const res=await sbInsert('contactos',obj);
+    if(res&&res.id)obj.id=res.id;else obj.id=DB.nid.c;
+  }catch{obj.id=DB.nid.c;}
+  DB.contactos.push(obj);DB.nid.c=Math.max(DB.nid.c,(obj.id||0)+1);
+  hideLoading();rContactos();
+}
+
+async function importarTodosContactosCam(){
+  const nombresGuardados=new Set(DB.contactos.map(c=>(c.nombre||'').toLowerCase().trim()));
+  const nuevos=new Map();
+  DB.viajes.forEach(v=>{
+    const d=(v.destino||'').trim(), o=(v.origen||'').trim();
+    if(d&&!nombresGuardados.has(d.toLowerCase()))nuevos.set(d.toLowerCase(),{nombre:d,tipo:'cliente'});
+    if(o&&!nombresGuardados.has(o.toLowerCase()))nuevos.set(o.toLowerCase(),{nombre:o,tipo:'proveedor'});
+  });
+  if(!nuevos.size){alert('No hay contactos nuevos para importar.');return;}
+  if(!confirm(`Se importarán ${nuevos.size} contacto(s) nuevo(s) de los viajes. ¿Continuar?`))return;
+  showLoading('Importando...');
+  let ok=0;
+  for(const c of nuevos.values()){
+    try{
+      const res=await sbInsert('contactos',{nombre:c.nombre,tipo:c.tipo,telefono:'',email:'',direccion:'',notas:''});
+      if(res&&res.id)c.id=res.id;else c.id=DB.nid.c;
+    }catch{c.id=DB.nid.c;}
+    DB.contactos.push(c);DB.nid.c=Math.max(DB.nid.c,(c.id||0)+1);
+    ok++;
+  }
+  hideLoading();rContactos();
+  alert(`✅ Importados ${ok} contacto(s).`);
 }
 async function delCon(id){if(!confirm('¿Eliminar?'))return;showLoading('Eliminando...');try{await sbDelete('contactos',id);DB.contactos=DB.contactos.filter(x=>x.id!==id);hideLoading();}catch(e){hideLoading();alert('Error: '+e.message);}rContactos()}
 
