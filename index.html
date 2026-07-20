@@ -247,7 +247,7 @@ tr:hover td{background:#fafaf9}
       <table>
         <thead><tr>
           <th>ID</th>
-          <th>ELIT2</th>
+          <th>ELIT2/COR</th>
           <th>Proceso</th>
           <th onclick="vs('previsto')">Previsto ↕</th>
           <th onclick="vs('carga')">Carga ↕</th>
@@ -555,6 +555,23 @@ function elitCode(v){
   return'ELIT2-'+num;
 }
 
+function isFontVella(v){
+  if(!v)return false;
+  const p=v.producto||'';
+  if(p.startsWith('[')){try{return JSON.parse(p).some(l=>(l.p||'').toLowerCase().includes('font vella'));}catch{}}
+  return p.toLowerCase().includes('font vella');
+}
+
+function corCode(v){
+  if(!isFontVella(v))return null;
+  if((v.fv_stock||'')==='stock')return null; // stock nuestro = sin código COR
+  const fvCor=[...DB.viajes].sort((a,b)=>a.id-b.id)
+    .filter(x=>isFontVella(x)&&(x.fv_stock||'')!=='stock');
+  const pos=fvCor.findIndex(x=>x.id===v.id);
+  if(pos<0)return null;
+  return'COR-'+String(pos+9).padStart(2,'0'); // COR-09, COR-10, COR-11...
+}
+
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
 
 function bdg(s,fn,id){
@@ -635,11 +652,12 @@ function sendWhatsApp(id){
     '━━━━━━━━━━━━━━━━━━━━━',
     `🆔 *Ref:* ${genId(v)}`,
     ...(elitCode(v)?[`📋 *ELIT2:* ${elitCode(v)}`]:[]),
+    ...(corCode(v)?[`📦 *COR:* ${corCode(v)}`]:[]),
     '',
     `🏪 *CLIENTE:* ${v.destino||'—'}`,
     `🏭 *PROVEEDOR:* ${v.origen||'—'}`,
     ...(lineas.some(l=>(l.p||'').toLowerCase().includes('font vella'))?[
-      `🫙 *Font Vella — Origen:* ${v.fv_stock==='stock'?'✅ Stock nuestro':'📦 COR-09'}`,
+      `🫙 *Font Vella — Origen:* ${v.fv_stock==='stock'?'✅ Stock nuestro':`📦 ${corCode(v)||'COR'}` }`,
       ...(v.fv_salida?[`📅 *Salida Font Vella:* ${fd(v.fv_salida)}`]:[])
     ]:[]),
     '',
@@ -873,7 +891,7 @@ function rViajes(){
     const proc=getProceso(v);
     return `<tr>
       <td style="font-weight:600;color:#185FA5;font-size:11px;white-space:nowrap">${genId(v)}</td>
-      <td style="white-space:nowrap">${elitCode(v)?`<span style="font-weight:700;color:#6d28d9;background:#ede9fe;padding:2px 8px;border-radius:6px;font-size:12px">${elitCode(v)}</span>`:'—'}</td>
+      <td style="white-space:nowrap">${elitCode(v)?`<span style="font-weight:700;color:#6d28d9;background:#ede9fe;padding:2px 8px;border-radius:6px;font-size:12px">${elitCode(v)}</span>`:corCode(v)?`<span style="font-weight:700;color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:6px;font-size:12px">${corCode(v)}</span>`:'—'}</td>
       <td><span class="pbdg pbdg-${proc.cls}">${proc.label}</span></td>
       <td>${fd(v.previsto)}</td>
       <td>${fd(v.carga)}</td>
@@ -918,7 +936,7 @@ function rViajes(){
         <div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="font-size:10px;font-weight:700;color:#185FA5;letter-spacing:.3px">${genId(v)}</span>
-            ${elitCode(v)?`<span style="font-size:10px;font-weight:700;color:#6d28d9;background:#ede9fe;padding:1px 6px;border-radius:4px">${elitCode(v)}</span>`:''}
+            ${elitCode(v)?`<span style="font-size:10px;font-weight:700;color:#6d28d9;background:#ede9fe;padding:1px 6px;border-radius:4px">${elitCode(v)}</span>`:corCode(v)?`<span style="font-size:10px;font-weight:700;color:#1e40af;background:#dbeafe;padding:1px 6px;border-radius:4px">${corCode(v)}</span>`:''}
           </div>
           <div class="vcard-cliente">${v.destino||'—'}</div>
           <span class="pbdg pbdg-${proc.cls}" style="margin-top:4px;display:inline-flex">${proc.label}</span>
@@ -1257,7 +1275,7 @@ function openViaje(id=null){
         <div class="fl">
           <label>📦 ¿De dónde sale?</label>
           <select id="i-fv-stock" style="border-color:#93c5fd">
-            <option value="">COR-09 (almacén externo)</option>
+            <option value="">📦 Almacén externo (COR)</option>
             <option value="stock"${v.fv_stock==='stock'?' selected':''}>✅ Stock nuestro</option>
           </select>
         </div>
