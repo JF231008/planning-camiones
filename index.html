@@ -564,9 +564,10 @@ function isFontVella(v){
 
 function corCode(v){
   if(!isFontVella(v))return null;
-  if((v.fv_stock||'')==='stock')return null; // stock nuestro = sin código COR
+  if(v.fv_stock==null)return null; // viaje anterior al sistema COR (sin columna)
+  if(v.fv_stock==='stock')return null; // stock nuestro = sin código COR
   const fvCor=[...DB.viajes].sort((a,b)=>a.id-b.id)
-    .filter(x=>isFontVella(x)&&(x.fv_stock||'')!=='stock');
+    .filter(x=>isFontVella(x)&&x.fv_stock!=null&&x.fv_stock!=='stock');
   const pos=fvCor.findIndex(x=>x.id===v.id);
   if(pos<0)return null;
   return'COR-'+String(pos+9).padStart(2,'0'); // COR-09, COR-10, COR-11...
@@ -723,7 +724,7 @@ function checkFVSection(){
       if(cor){
         opt.textContent=`📦 ${cor} (almacén externo)`;
       } else {
-        const nextPos=DB.viajes.filter(x=>isFontVella(x)&&(x.fv_stock||'')!=='stock').length;
+        const nextPos=DB.viajes.filter(x=>isFontVella(x)&&x.fv_stock!=null&&x.fv_stock!=='stock').length;
         opt.textContent=`📦 COR-${String(nextPos+9).padStart(2,'0')} (almacén externo)`;
       }
     }
