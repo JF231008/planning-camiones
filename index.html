@@ -247,7 +247,7 @@ tr:hover td{background:#fafaf9}
       <table>
         <thead><tr>
           <th>ID</th>
-          <th>ELIT</th>
+          <th>ELIT2</th>
           <th>Proceso</th>
           <th onclick="vs('previsto')">Previsto ↕</th>
           <th onclick="vs('carga')">Carga ↕</th>
@@ -547,12 +547,12 @@ function elitCode(v){
   const sorted=[...DB.viajes].sort((a,b)=>a.id-b.id);
   const idx=sorted.findIndex(x=>x.id===v.id);
   if(idx<39)return null;       // posiciones 1-39: sin ELIT
-  if(idx===39)return'ELIT-4';  // posición 40: fijo ELIT-4
+  if(idx===39)return'ELIT2-4';  // posición 40: fijo ELIT2-4
   const solanDesde41=sorted.filter((_,i)=>i>=40).filter(isSolan);
   const pos=solanDesde41.findIndex(x=>x.id===v.id);
   if(pos<0)return null;
   const num=pos+1>=4?pos+2:pos+1; // salta el 4 (reservado para posición 40)
-  return'ELIT-'+num;
+  return'ELIT2-'+num;
 }
 
 function cst(v){const c=(v.cobro||'').trim().toUpperCase();if(c==='COBRADA'||c)return'c';if(!v.factura)return's';return'p'}
