@@ -715,6 +715,19 @@ function checkFVSection(){
     .some(s=>(s.value||'').toLowerCase().includes('font vella'));
   const sec=document.getElementById('fv-sec');
   if(sec) sec.style.display=hasFV?'block':'none';
+  if(hasFV){
+    const opt=document.querySelector('#i-fv-stock option[value=""]');
+    if(opt){
+      const editV=curId?DB.viajes.find(x=>x.id===curId):null;
+      const cor=editV?corCode(editV):null;
+      if(cor){
+        opt.textContent=`📦 ${cor} (almacén externo)`;
+      } else {
+        const nextPos=DB.viajes.filter(x=>isFontVella(x)&&(x.fv_stock||'')!=='stock').length;
+        opt.textContent=`📦 COR-${String(nextPos+9).padStart(2,'0')} (almacén externo)`;
+      }
+    }
+  }
 }
 
 function getLineasFromForm(){
